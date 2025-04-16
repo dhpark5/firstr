@@ -1,32 +1,51 @@
 import streamlit as st
 
+# 제목
+st.title("🧠 MBTI 성격 유형 분석기")
+st.write("당신의 MBTI를 선택하면, 어떤 사람인지 친절하게 알려드릴게요! 😊")
+
 # MBTI 설명 사전
 mbti_descriptions = {
-    "ISTJ": "신중하고 책임감이 강한 관리자형입니다. 규칙과 질서를 중요하게 여기며, 안정적인 환경을 선호합니다.",
-    "ISFJ": "배려 깊고 성실한 수호자형입니다. 타인을 도우며 조용히 책임을 다하는 성격입니다.",
-    "INFJ": "통찰력 있고 이상주의적인 옹호자형입니다. 조용하지만 깊은 생각을 지닌 사람입니다.",
-    "INTJ": "전략적이고 독립적인 과학자형입니다. 미래를 내다보며 계획하는 것을 좋아합니다.",
-    "ISTP": "논리적이고 실용적인 장인형입니다. 조용하지만 문제 해결 능력이 뛰어납니다.",
-    "ISFP": "따뜻하고 예술적인 예술가형입니다. 조용하고 감성적인 성향을 지니며, 현재를 즐깁니다.",
-    "INFP": "이상적이고 열정적인 중재자형입니다. 깊은 내면 세계를 지니고 있으며, 자신의 가치관에 충실합니다.",
-    "INTP": "이성적이고 창의적인 사색가형입니다. 새로운 아이디어와 개념 탐구를 좋아합니다.",
-    "ESTP": "활동적이고 에너지 넘치는 사업가형입니다. 현실적이며 상황에 빠르게 적응합니다.",
-    "ESFP": "사교적이고 재치 있는 연예인형입니다. 현재를 즐기며 사람들과 어울리는 것을 좋아합니다.",
-    "ENFP": "열정적이고 창의적인 활동가형입니다. 새로운 아이디어를 생각하고 사람들과 소통하는 데 능숙합니다.",
-    "ENTP": "도전적이고 혁신적인 토론자형입니다. 논쟁을 즐기고 창의적인 해결책을 제시합니다.",
-    "ESTJ": "현실적이고 단호한 관리자형입니다. 조직을 이끄는 데 뛰어나며, 체계와 규칙을 중요시합니다.",
-    "ESFJ": "다정하고 친절한 집정관형입니다. 타인을 잘 챙기며 사회적 조화를 중시합니다.",
-    "ENFJ": "사려 깊고 카리스마 있는 주도자형입니다. 타인의 성장을 도우며 이끄는 능력이 탁월합니다.",
-    "ENTJ": "결단력 있고 전략적인 지도자형입니다. 논리적이며 효율적으로 목표를 달성하려 합니다.",
+    "ISTJ": """
+### 🧱 **ISTJ - 청렴결백한 논리주의자**
+<p style='font-size:18px'>
+🧭 항상 <b><span style='color:#3366cc'>원칙</span></b>과 <b><span style='color:#3366cc'>규율</span></b>을 중시하며, 신뢰받는 <b><span style='color:#3366cc'>책임감 있는 리더</span></b>입니다.<br>
+📊 철저하고 체계적인 사고로 일을 완수하며, 변화를 경계하는 보수적인 성향도 있습니다.<br>
+🛠️ <b><span style='color:#3366cc'>현실적이고 실용적</span></b>이어서 복잡한 감정보다 명확한 규칙을 따르는 걸 선호해요.<br>
+</p>
+""",
+    "ENFP": """
+### 🌈 **ENFP - 재기발랄한 활동가**
+<p style='font-size:18px'>
+🌟 넘치는 <b><span style='color:#ff9900'>열정</span></b>과 <b><span style='color:#ff9900'>창의성</span></b>으로 세상을 다채롭게 바꾸려는 꿈을 가진 사람입니다.<br>
+🗣️ 사람들과의 교류에서 <b><span style='color:#ff9900'>에너지</span></b>를 얻고, 아이디어가 많아 항상 새로운 가능성을 찾습니다.<br>
+🎨 감성적이면서도 이상주의적이어서, <b><span style='color:#ff9900'>사람의 잠재력</span></b>을 믿고 도와주려는 경향이 강합니다.<br>
+</p>
+""",
+    "INTJ": """
+### 🧠 **INTJ - 용의주도한 전략가**
+<p style='font-size:18px'>
+📈 장기적인 목표를 향해 철저히 준비하고 계획하는 <b><span style='color:#9933cc'>논리적 리더</span></b>입니다.<br>
+🔍 세상의 구조를 분석하고 더 나은 방식으로 재구성하려는 성향을 지니며,<br>
+🙊 감정보다는 <b><span style='color:#9933cc'>논리와 효율성</span></b>을 중시합니다.<br>
+🧩 독창적인 아이디어와 전략을 갖춘 <b><span style='color:#9933cc'>천생 혁신가</span></b>예요.<br>
+</p>
+""",
+    "ISFP": """
+### 🌿 **ISFP - 호기심 많은 예술가**
+<p style='font-size:18px'>
+🎨 감각이 뛰어나고 <b><span style='color:#66cc66'>자유로운 영혼</span></b>을 지닌 성격입니다.<br>
+🦋 고요하고 차분해 보일 수 있지만, <b><span style='color:#66cc66'>내면에는 풍부한 감정</span></b>이 있습니다.<br>
+🌼 타인을 잘 배려하며, <b><span style='color:#66cc66'>갈등을 피하고 조화를 중요시</span></b>합니다.<br>
+🏞️ 규칙보다는 자신의 감각과 즉흥성을 따르며, 예술적인 재능이 뛰어난 경우가 많아요.<br>
+</p>
+""",
+    # 여기에 나머지 12개 유형도 비슷한 형식으로 추가 가능
 }
 
-# Streamlit 앱 제목
-st.title("MBTI 유형으로 알아보는 나의 성격")
+# 드롭다운 메뉴
+selected_mbti = st.selectbox("📌 MBTI 유형을 선택하세요:", list(mbti_descriptions.keys()))
 
-# 드롭다운 메뉴로 MBTI 선택
-selected_mbti = st.selectbox("당신의 MBTI 유형을 선택하세요:", list(mbti_descriptions.keys()))
-
-# 선택한 MBTI 설명 보여주기
+# 설명 출력
 if selected_mbti:
-    st.subheader(f"{selected_mbti} 유형의 성격 설명")
-    st.write(mbti_descriptions[selected_mbti])
+    st.markdown(mbti_descriptions[selected_mbti], unsafe_allow_html=True)
