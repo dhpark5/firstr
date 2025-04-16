@@ -4,7 +4,7 @@ import streamlit as st
 st.title("🧠 MBTI 성격 유형 분석기")
 st.write("당신의 MBTI를 선택하면, 어떤 사람인지 친절하게 알려드릴게요! 😊")
 
-# MBTI 설명 사전
+# MBTI 설명 사전 (일부만 예시로 작성)
 mbti_descriptions = {
     "ISTJ": """
 ### 🧱 **ISTJ - 청렴결백한 논리주의자**
@@ -40,7 +40,6 @@ mbti_descriptions = {
 🏞️ 규칙보다는 자신의 감각과 즉흥성을 따르며, 예술적인 재능이 뛰어난 경우가 많아요.<br>
 </p>
 """,
-    # 여기에 나머지 12개 유형도 비슷한 형식으로 추가 가능
 }
 
 # 드롭다운 메뉴
@@ -48,4 +47,8 @@ selected_mbti = st.selectbox("📌 MBTI 유형을 선택하세요:", list(mbti_d
 
 # 설명 출력
 if selected_mbti:
+    # 풍선 효과 발동 🎈
+    st.balloons()
+
+    # 설명 출력
     st.markdown(mbti_descriptions[selected_mbti], unsafe_allow_html=True)
