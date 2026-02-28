@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스넬의 법칙 및 굴절 시뮬레이션</title>
+    
+    <!-- MathJax 로드 (이론 설명 수식 렌더링용) -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #f59e0b;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --ray-incident: #ef4444; /* 입사광/반사광 색상 */
+            --ray-refract: #3b82f6; /* 굴절광 색상 */
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.6rem; color: #0f172a; }
+        .desc { font-size: 0.95rem; color: #64748b; margin-top: 8px; }
+
+        /* 탭 버튼 스타일 */
+        .tab-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: #ffffff;
+            color: #64748b;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn:hover { background: #f1f5f9; }
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .view-section { display: none; width: 100%; animation: fadeIn 0.3s ease-in-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 시뮬레이션 영역 스타일 */
+        canvas {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: block;
+        }
+
+        #simCanvas { height: 350px; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f1f5f9;
+            border-radius: 12px;
+        }
+
+        .result-box {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .result-val { font-size: 1.4rem; font-weight: 800; color: #0f172a; }
+        .result-sub { font-size: 0.85rem; color: #64748b; margin-top: 8px; line-height: 1.4; }
+
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-panel {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        select, input[type="number"] {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .badge-1 { color: #0ea5e9; font-weight: bold; } /* 매질 1 */
+        .badge-2 { color: #8b5cf6; font-weight: bold; } /* 매질 2 */
+
+        /* 이론 설명 영역 스타일 */
+        .theory-box {
+            background: #eff6ff;
+            padding: 24px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary-color);
+            margin-bottom: 20px;
+        }
+        .theory-title { color: #1e40af; margin-top: 0; font-size: 1.2rem; }
+        .theory-content { font-size: 1rem; color: #334155; line-height: 1.6; }
+        .math-expr {
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+            overflow-x: auto;
+        }
+        .coeff-box {
+            background: #f8fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .coeff-list { margin-top: 10px; padding-left: 20px; }
+        .coeff-list li { margin-bottom: 8px; color: #475569; line-height: 1.5; }
+        .coeff-list strong { color: #0f172a; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>✨ 스넬의 법칙 (굴절 법칙)</h1>
+    </header>
+
+    <div class="tab-group">
+        <button class="tab-btn" id="btnTheory" onclick="switchTab('theory')">📖 이론 및 공식</button>
+        <button class="tab-btn active" id="btnSim" onclick="switchTab('sim')">🎯 시뮬레이션</button>
+    </div>
+
+    <!-- 1. 이론 설명 화면 -->
+    <div id="viewTheory" class="view-section">
+        <div class="theory-box">
+            <h3 class="theory-title">스넬의 법칙 (Snell's Law)</h3>
+            <div class="theory-content">
+                파동이 한 매질에서 다른 매질로 진행할 때, 매질의 경계면에서 진행 방향이 꺾이는 현상을 <b>굴절(Refraction)</b>이라고 합니다. 스넬의 법칙은 입사각과 굴절각, 그리고 두 매질의 굴절률 사이의 관계를 나타냅니다.
+                <div class="math-expr">
+                    $n_1 \sin \theta_1 = n_2 \sin \theta_2$
+                </div>
+                <ul>
+                    <li>$n_1, n_2$: 매질 1과 매질 2의 절대 굴절률 (진공에서의 빛의 속력과 해당 매질에서의 빛의 속력의 비, $n = c/v$)</li>
+                    <li>$\theta_1$: 입사각 (경계면의 법선과 입사광이 이루는 각)</li>
+                    <li>$\theta_2$: 굴절각 (경계면의 법선과 굴절광이 이루는 각)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="coeff-box">
+            <h3 style="margin-top: 0; color: #1e293b;">페르마의 원리에 의한 유도 (최단 시간의 원리)</h3>
+            <div class="theory-content">
+                빛은 두 점 사이를 진행할 때 <b>가장 시간이 적게 걸리는 경로</b>를 택한다는 페르마의 원리(Fermat's principle)를 통해 스넬의 법칙을 유도할 수 있습니다.
+                <br><br>
+                점 A(매질 1)에서 점 B(매질 2)로 빛이 진행할 때 걸리는 총 시간 $t$는 각 매질에서의 경로 길이를 속력으로 나눈 값의 합입니다.
+                <div class="math-expr" style="border-color: #e2e8f0; font-size: 1.1rem;">
+                    $t = \frac{\sqrt{x^2 + y_1^2}}{v_1} + \frac{\sqrt{(d-x)^2 + y_2^2}}{v_2}$
+                </div>
+                이 시간이 최소가 되기 위해서는 $t$를 $x$에 대해 미분한 값이 0이 되어야 합니다. ($\frac{dt}{dx} = 0$)
+                <div class="math-expr" style="border-color: #e2e8f0; font-size: 1.1rem;">
+                    $\frac{x}{v_1 \sqrt{x^2 + y_1^2}} - \frac{d-x}{v_2 \sqrt{(d-x)^2 + y_2^2}} = 0$
+                </div>
+                기하학적으로 $\frac{x}{\sqrt{x^2 + y_1^2}} = \sin\theta_1$ 이고, $\frac{d-x}{\sqrt{(d-x)^2 + y_2^2}} = \sin\theta_2$ 이므로 식은 다음과 같이 정리됩니다.
+                <div class="math-expr" style="border-color: #e2e8f0; font-size: 1.1rem;">
+                    $\frac{\sin\theta_1}{v_1} = \frac{\sin\theta_2}{v_2}$
+                </div>
+                $n = \frac{c}{v}$ 관계를 대입하면 $n_1 \sin\theta_1 = n_2 \sin\theta_2$ 가 도출됩니다.
+            </div>
+        </div>
+
+        <div class="coeff-box" style="margin-top: 20px;">
+            <h3 style="margin-top: 0; color: #ef4444;">전반사 (Total Internal Reflection)</h3>
+            <div class="theory-content">
+                빛이 굴절률이 큰 매질에서 작은 매질로 진행할 때 ($n_1 > n_2$), 굴절각이 $90^\circ$가 될 때의 입사각을 <b>임계각($\theta_c$)</b>이라고 합니다. 입사각이 임계각보다 커지면 빛은 매질 2로 투과하지 못하고 경계면에서 100% 반사됩니다.
+                <div class="math-expr" style="border-color: #fca5a5; background-color: #fef2f2;">
+                    $\theta_c = \sin^{-1} \left( \frac{n_2}{n_1} \right)$
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 시뮬레이션 화면 -->
+    <div id="viewSim" class="view-section active">
+        <canvas id="simCanvas" width="800" height="350"></canvas>
+
+        <div class="dashboard">
+            <div class="result-box">
+                <span class="result-title">입사각 ($\theta_1$)</span>
+                <div class="result-val" id="dispTheta1" style="color: var(--ray-incident);">0.0°</div>
+                <div class="result-sub" id="dispN1">매질 1: n = 1.00</div>
+            </div>
+            <div class="result-box">
+                <span class="result-title">굴절각 ($\theta_2$)</span>
+                <div class="result-val" id="dispTheta2" style="color: var(--ray-refract);">0.0°</div>
+                <div class="result-sub" id="dispN2">매질 2: n = 1.33</div>
+            </div>
+            <div class="result-box">
+                <span class="result-title">상태 / 임계각</span>
+                <div class="result-val" id="dispStatus" style="color: #10b981; font-size: 1.2rem;">정상 굴절</div>
+                <div class="result-sub" id="dispCritical">임계각: 없음</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <!-- 매질 1 컨트롤 -->
+            <div class="control-panel" style="border-top: 4px solid #0ea5e9;">
+                <label><span class="badge-1">위쪽 매질 (매질 1)</span></label>
+                <div class="control-group">
+                    <select id="preset1" onchange="applyPreset(1)">
+                        <option value="1.00">공기 / 진공 (1.00)</option>
+                        <option value="1.33">물 (1.33)</option>
+                        <option value="1.36">에탄올 (1.36)</option>
+                        <option value="1.52">크라운 유리 (1.52)</option>
+                        <option value="1.62">플린트 유리 (1.62)</option>
+                        <option value="1.77">사파이어 (1.77)</option>
+                        <option value="2.42">다이아몬드 (2.42)</option>
+                        <option value="custom">직접 입력...</option>
+                    </select>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size:0.9rem; font-weight:bold;">$n_1$ =</span>
+                        <input type="number" id="inN1" min="1.0" max="4.0" step="0.01" value="1.00" oninput="updateFromInput(1)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 매질 2 컨트롤 -->
+            <div class="control-panel" style="border-top: 4px solid #8b5cf6;">
+                <label><span class="badge-2">아래쪽 매질 (매질 2)</span></label>
+                <div class="control-group">
+                    <select id="preset2" onchange="applyPreset(2)">
+                        <option value="1.00">공기 / 진공 (1.00)</option>
+                        <option value="1.33" selected>물 (1.33)</option>
+                        <option value="1.36">에탄올 (1.36)</option>
+                        <option value="1.52">크라운 유리 (1.52)</option>
+                        <option value="1.62">플린트 유리 (1.62)</option>
+                        <option value="1.77">사파이어 (1.77)</option>
+                        <option value="2.42">다이아몬드 (2.42)</option>
+                        <option value="custom">직접 입력...</option>
+                    </select>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size:0.9rem; font-weight:bold;">$n_2$ =</span>
+                        <input type="number" id="inN2" min="1.0" max="4.0" step="0.01" value="1.33" oninput="updateFromInput(2)">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 입사각 조절 슬라이더 -->
+            <div class="control-panel" style="grid-column: 1 / -1; border-top: 4px solid var(--text-color);">
+                <div class="control-group">
+                    <label><span>레이저 입사각 ($\theta_1$)</span> <span id="valTheta1">45.0°</span></label>
+                    <input type="range" id="inTheta1" min="0" max="89.9" step="0.1" value="45.0" oninput="calculateAndDraw()">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 탭 전환 로직 ---
+    function switchTab(tabId) {
+        const btnTheory = document.getElementById('btnTheory');
+        const btnSim = document.getElementById('btnSim');
+        const viewTheory = document.getElementById('viewTheory');
+        const viewSim = document.getElementById('viewSim');
+
+        if (tabId === 'theory') {
+            btnTheory.classList.add('active');
+            btnSim.classList.remove('active');
+            viewTheory.classList.add('active');
+            viewSim.classList.remove('active');
+        } else {
+            btnSim.classList.add('active');
+            btnTheory.classList.remove('active');
+            viewSim.classList.add('active');
+            viewTheory.classList.remove('active');
+            calculateAndDraw(); // 캔버스 복구
+        }
+    }
+
+    // --- 시뮬레이션 로직 ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // DOM 요소
+    const inN1 = document.getElementById('inN1');
+    const inN2 = document.getElementById('inN2');
+    const preset1 = document.getElementById('preset1');
+    const preset2 = document.getElementById('preset2');
+    const inTheta1 = document.getElementById('inTheta1');
+    
+    const dispTheta1 = document.getElementById('dispTheta1');
+    const dispTheta2 = document.getElementById('dispTheta2');
+    const dispN1 = document.getElementById('dispN1');
+    const dispN2 = document.getElementById('dispN2');
+    const dispStatus = document.getElementById('dispStatus');
+    const dispCritical = document.getElementById('dispCritical');
+    const valTheta1 = document.getElementById('valTheta1');
+
+    // 프리셋 변경 시 입력창 업데이트
+    function applyPreset(mediumNum) {
+        const presetObj = mediumNum === 1 ? preset1 : preset2;
+        const inputObj = mediumNum === 1 ? inN1 : inN2;
+        
+        if (presetObj.value !== 'custom') {
+            inputObj.value = presetObj.value;
+        }
+        calculateAndDraw();
+    }
+
+    // 입력창 직접 수정 시 프리셋을 'custom'으로 변경
+    function updateFromInput(mediumNum) {
+        const presetObj = mediumNum === 1 ? preset1 : preset2;
+        const inputObj = mediumNum === 1 ? inN1 : inN2;
+        const val = parseFloat(inputObj.value).toFixed(2);
+        
+        let found = false;
+        for (let i = 0; i < presetObj.options.length; i++) {
+            if (presetObj.options[i].value === val) {
+                presetObj.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) presetObj.value = 'custom';
+        
+        calculateAndDraw();
+    }
+
+    // 배경색 계산 함수 (굴절률이 높을수록 약간 더 어둡고 푸른/보라빛)
+    function getMediumColor(n, isTop) {
+        // 공기(1.0)일때 완전 흰색에 가깝게, 다이아(2.4)일때 색상 부여
+        const normalized = Math.min(Math.max((n - 1.0) / 1.5, 0), 1);
+        if (isTop) {
+            // 위쪽은 약간 푸른빛 바탕
+            const r = Math.floor(255 - normalized * 40);
+            const g = Math.floor(255 - normalized * 20);
+            const b = 255;
+            return `rgb(${r}, ${g}, ${b})`;
+        } else {
+            // 아래쪽은 약간 보라빛 바탕
+            const r = Math.floor(255 - normalized * 30);
+            const g = Math.floor(255 - normalized * 40);
+            const b = 255;
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+    }
+
+    // 메인 물리 연산 및 그리기 함수
+    function calculateAndDraw() {
+        const n1 = parseFloat(inN1.value);
+        const n2 = parseFloat(inN2.value);
+        const theta1_deg = parseFloat(inTheta1.value);
+        const theta1_rad = theta1_deg * Math.PI / 180;
+
+        // 대시보드 업데이트 (매질)
+        dispN1.innerText = `매질 1: n = ${n1.toFixed(2)}`;
+        dispN2.innerText = `매질 2: n = ${n2.toFixed(2)}`;
+        valTheta1.innerText = `${theta1_deg.toFixed(1)}°`;
+
+        let theta2_rad = 0;
+        let theta2_deg = 0;
+        let isTIR = false;
+        let criticalAngle_deg = null;
+
+        // 스넬의 법칙 연산
+        const sinTheta2 = (n1 / n2) * Math.sin(theta1_rad);
+
+        // 임계각 계산 (n1 > n2 인 경우만 존재)
+        if (n1 > n2) {
+            criticalAngle_deg = Math.asin(n2 / n1) * 180 / Math.PI;
+            dispCritical.innerText = `임계각: ${criticalAngle_deg.toFixed(1)}°`;
+            
+            if (sinTheta2 > 1.0) {
+                isTIR = true; // 전반사 발생
+            } else {
+                theta2_rad = Math.asin(sinTheta2);
+                theta2_deg = theta2_rad * 180 / Math.PI;
+            }
+        } else {
+            dispCritical.innerText = "임계각: 없음 (n₁ ≤ n₂)";
+            theta2_rad = Math.asin(sinTheta2);
+            theta2_deg = theta2_rad * 180 / Math.PI;
+        }
+
+        // 대시보드 상태 업데이트
+        dispTheta1.innerText = `${theta1_deg.toFixed(1)}°`;
+        if (isTIR) {
+            dispTheta2.innerText = "없음";
+            dispStatus.innerText = "전반사 발생!";
+            dispStatus.style.color = "#ef4444";
+        } else {
+            dispTheta2.innerText = `${theta2_deg.toFixed(1)}°`;
+            dispStatus.innerText = "정상 굴절";
+            dispStatus.style.color = "#10b981";
+        }
+
+        // --- 캔버스 그리기 ---
+        const cw = canvas.width;
+        const ch = canvas.height;
+        const cx = cw / 2;
+        const cy = ch / 2;
+        const rayLength = 400; // 충분히 긴 길이
+
+        ctx.clearRect(0, 0, cw, ch);
+
+        // 1. 매질 배경색 칠하기
+        ctx.fillStyle = getMediumColor(n1, true);
+        ctx.fillRect(0, 0, cw, cy);
+        ctx.fillStyle = getMediumColor(n2, false);
+        ctx.fillRect(0, cy, cw, ch);
+
+        // 2. 경계면 그리기 (가로선)
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(cw, cy);
+        ctx.stroke();
+
+        // 3. 법선 그리기 (세로 점선)
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, ch);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 4. 입사광 그리기 (빨간색)
+        // 입사광은 왼쪽 위(-x, -y 방향)에서 중앙(cx, cy)으로 향함
+        const incX = cx - rayLength * Math.sin(theta1_rad);
+        const incY = cy - rayLength * Math.cos(theta1_rad);
+        
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(incX, incY);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+
+        // 5. 굴절광 & 반사광 그리기
+        if (isTIR) {
+            // 전반사: 굴절광 없음, 반사광 100% 진하게
+            const refX = cx + rayLength * Math.sin(theta1_rad);
+            const refY = cy - rayLength * Math.cos(theta1_rad);
+            
+            ctx.strokeStyle = "#ef4444"; // 입사광과 같은 밝기
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(refX, refY);
+            ctx.stroke();
+        } else {
+            // 정상 굴절: 굴절광(파란색) + 약한 반사광(흐린 빨간색)
+            
+            // 굴절광
+            const refrX = cx + rayLength * Math.sin(theta2_rad);
+            const refrY = cy + rayLength * Math.cos(theta2_rad);
+            ctx.strokeStyle = "#3b82f6";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(refrX, refrY);
+            ctx.stroke();
+
+            // 약한 반사광 (현실성 부여)
+            const refX = cx + rayLength * Math.sin(theta1_rad);
+            const refY = cy - rayLength * Math.cos(theta1_rad);
+            ctx.strokeStyle = "rgba(239, 68, 68, 0.25)"; // 흐리게
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(refX, refY);
+            ctx.stroke();
+
+            // 굴절각 호(Arc) 그리기
+            ctx.strokeStyle = "#3b82f6";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            // 법선 아래쪽(Math.PI/2)에서부터 굴절각만큼
+            ctx.arc(cx, cy, 50, Math.PI/2 - theta2_rad, Math.PI/2);
+            ctx.stroke();
+        }
+
+        // 6. 입사각 호(Arc) 그리기
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // 법선 위쪽(-Math.PI/2)에서부터 입사각만큼 왼쪽으로
+        ctx.arc(cx, cy, 40, -Math.PI/2, -Math.PI/2 + theta1_rad);
+        ctx.stroke();
+    }
+
+    // 초기 실행
+    calculateAndDraw();
+
+</script>
+
+</body>
+</html>
