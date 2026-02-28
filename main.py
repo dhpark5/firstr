@@ -26,7 +26,7 @@ page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정�
 page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
 
 # 광학
-page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈 시뮬레이션", icon="▪️")
+page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈에 의한 상", icon="▪️")
 page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="▪️")
 page_snell = st.Page("pages/optics_snell.py", title="굴절 법칙", icon="▪️")
 
