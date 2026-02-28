@@ -15,7 +15,7 @@ def intro_page():
     # st.info("👈 화면 왼쪽의 메뉴를 펼쳐 시뮬레이션을 시작하세요!")
 
 # 3. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
-page_home = st.Page(intro_page, title="DIY물리실험 (홈)", icon="🏠", default=True)
+page_home = st.Page(intro_page, title="DIY물리실험", icon="🏠", default=True)
 
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
@@ -36,7 +36,7 @@ pg = st.navigation(all_pages, position="hidden")
 
 # 5. 커스텀 사이드바 직접 만들기 (접이식 카테고리 구현)
 with st.sidebar:
-    st.subheader("메뉴")
+    #st.subheader("메뉴")
     
     # 홈 화면은 카테고리 밖에 단독으로 둡니다.
     st.page_link(page_home)
