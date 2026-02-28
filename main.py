@@ -42,18 +42,18 @@ with st.sidebar:
     st.page_link(page_home)
     
     # expanded=False 파라미터를 통해 처음 접속 시 메뉴가 닫혀 있도록 설정합니다.
-    #with st.expander("🔹 역학", expanded=False):
+    #with st.expander("역학", expanded=False):
 
-    with st.expander("🔹 전자기학", expanded=False):
+    with st.expander("전자기학", expanded=False):
         st.page_link(page_Thevenin1)
         st.page_link(page_Thevenin2)
         st.page_link(page_RLC)
         
-    with st.expander("🔹 광학", expanded=False):
+    with st.expander("광학", expanded=False):
         st.page_link(page_lens)
         st.page_link(page_brewster)
         
-    with st.expander("🔹 SF", expanded=False):
+    with st.expander("SF", expanded=False):
         st.page_link(page_sf)
 
 # 6. 선택된 페이지 렌더링
