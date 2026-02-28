@@ -1,41 +1,23 @@
 import streamlit as st
-st.title("인구분포")
-st.write("연령별 인구분포")
 
-import streamlit as st
-import pandas as pd
-import plotly.express as px
+# 1. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
+# st.Page("파일경로", title="메뉴에 보일 이름", icon="아이콘")
+page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈 시뮬레이션", icon="🔍")
+page_circuit = st.Page("pages/교류회로.py", title="교류회로 실험", icon="⚡")
+page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="📚")
 
-# 데이터 로드
-@st.cache_data
-def load_data():
-    df = pd.read_csv("202505_202505_연령별인구현황_월간.csv", encoding="cp949")
-    df.columns = df.columns.str.replace("2025년05월_계_", "")
-    df["행정구역"] = df["행정구역"].str.replace(r"\s*\(.*\)", "", regex=True)
-    return df
+# 2. 카테고리(폴더) 구조로 페이지들을 묶어줍니다 (딕셔너리 형태).
+# 왼쪽 메뉴에 굵은 글씨로 카테고리 제목이 생성되고, 그 아래에 페이지들이 배치됩니다.
+nav_structure = {
+    "물리학 시뮬레이션": [page_lens, page_circuit],
+    "추천 및 기타": [page_sf],
+}
 
-df = load_data()
+# 3. 네비게이션 객체를 생성하고 실행합니다.
+pg = st.navigation(nav_structure)
 
-# 지역 선택
-region = st.selectbox("지역을 선택하세요", df["행정구역"].unique())
+# (선택) 모든 페이지에 공통으로 적용될 상단 설정이 필요하다면 여기에 작성합니다.
+st.set_page_config(page_title="통합 시뮬레이션 플랫폼", layout="wide")
 
-# 선택한 지역의 데이터 필터링
-region_row = df[df["행정구역"] == region].iloc[0]
-age_data = region_row[3:]  # 앞 3열은 메타데이터
-age_data = age_data.apply(lambda x: int(str(x).replace(",", "").split('.')[0]))  # 문자열 정제
-age_data = age_data.reset_index()
-age_data.columns = ["연령", "인구수"]
-age_data["연령"] = age_data["연령"].str.replace("세", "").str.replace("이상", "+").str.replace(" ", "")
-age_data["인구수"] = age_data["인구수"].astype(int)
-
-# 시각화
-fig = px.bar(age_data, 
-             x="인구수", 
-             y="연령", 
-             orientation="h",
-             title=f"{region}의 연령별 인구 구조",
-             labels={"연령": "연령", "인구수": "인구 수"},
-             height=900)
-fig.update_layout(yaxis={"categoryorder": "total ascending"})
-
-st.plotly_chart(fig, use_container_width=True)
+# 선택된 페이지 렌더링
+pg.run()
