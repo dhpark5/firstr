@@ -17,6 +17,9 @@ def intro_page():
 # 3. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
 page_home = st.Page(intro_page, title="DIY물리실험", icon="🏠", default=True)
 
+# 역학
+page_moment = st.Page("pages/moment.py", title="운동량 보존 법칙", icon="▪️")
+
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
 page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="▪️")
@@ -31,7 +34,7 @@ page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪
 
 # 4. 기본 네비게이션 숨기기
 # 모든 페이지를 리스트로 묶고, position="hidden"을 사용하여 스트림릿의 기본 메뉴를 안 보이게 지웁니다.
-all_pages = [page_home, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_brewster, page_sf]
+all_pages = [page_home, page_moment, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_brewster, page_sf]
 pg = st.navigation(all_pages, position="hidden")
 
 # 5. 커스텀 사이드바 직접 만들기 (접이식 카테고리 구현)
@@ -47,7 +50,8 @@ with st.sidebar:
     # st.divider()
     
     # expanded=False 파라미터를 통해 처음 접속 시 메뉴가 닫혀 있도록 설정합니다.
-    #with st.expander("역학", expanded=False):
+    with st.expander("역학", expanded=False):
+        st.page_link(page_moment)
     with st.expander("전자기학", expanded=False):
         st.page_link(page_Thevenin1)
         st.page_link(page_Thevenin2)
