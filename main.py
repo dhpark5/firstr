@@ -18,7 +18,7 @@ page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="�
 # 2. 카테고리(폴더) 구조로 페이지들을 묶어줍니다 (딕셔너리 형태).
 # 왼쪽 메뉴에 굵은 글씨로 카테고리 제목이 생성되고, 그 아래에 페이지들이 배치됩니다.
 nav_structure = {
-    "역학": ,
+    "역학": [],
     "전자기학": [], 
     "광학": [page_lens, page_brewster],
     "SF": [page_sf],
