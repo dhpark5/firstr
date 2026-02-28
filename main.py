@@ -4,12 +4,13 @@ import streamlit as st
 # st.Page("파일경로", title="메뉴에 보일 이름", icon="아이콘")
 page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈 시뮬레이션", icon="🔍")
 # page_circuit = st.Page("pages/교류회로.py", title="교류회로 실험", icon="⚡")
+page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="⚡")
 page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="📚")
 
 # 2. 카테고리(폴더) 구조로 페이지들을 묶어줍니다 (딕셔너리 형태).
 # 왼쪽 메뉴에 굵은 글씨로 카테고리 제목이 생성되고, 그 아래에 페이지들이 배치됩니다.
 nav_structure = {
-    "물리학 시뮬레이션": [page_lens], # page_circuit],
+    "물리학 시뮬레이션": [page_lens, page_brewster], # page_circuit],
     "추천 및 기타": [page_sf],
 }
 
