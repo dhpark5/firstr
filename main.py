@@ -28,13 +28,14 @@ page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
 # 광학
 page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈 시뮬레이션", icon="▪️")
 page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="▪️")
+page_snell = st.Page("pages/optics_snell.py", title="굴절 법칙", icon="▪️")
 
 # SF
 page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪️")
 
 # 4. 기본 네비게이션 숨기기
 # 모든 페이지를 리스트로 묶고, position="hidden"을 사용하여 스트림릿의 기본 메뉴를 안 보이게 지웁니다.
-all_pages = [page_home, page_moment, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_brewster, page_sf]
+all_pages = [page_home, page_moment, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_brewster, page_snell, page_sf]
 pg = st.navigation(all_pages, position="hidden")
 
 # 5. 커스텀 사이드바 직접 만들기 (접이식 카테고리 구현)
@@ -60,6 +61,7 @@ with st.sidebar:
     with st.expander("광학", expanded=False):
         st.page_link(page_lens)
         st.page_link(page_brewster)
+        st.page_link(page_snell)
         
     with st.expander("SF", expanded=False):
         st.page_link(page_sf)
