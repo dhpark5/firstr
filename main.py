@@ -1,8 +1,8 @@
 import streamlit as st
 
+st.set_page_config(page_title="DIY물리실험", layout="wide", initial_sidebar_state="collapsed")
 # 1. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
 # st.Page("파일경로", title="메뉴에 보일 이름", icon="아이콘")
-
 # 역학
 
 # 전자기학
