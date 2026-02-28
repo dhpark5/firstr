@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>볼록렌즈 광선 추적 시뮬레이션</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-color: #1e293b;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            display: block;
+            touch-action: none;
+        }
+
+        .info-bar {
+            margin-top: 16px;
+            padding: 12px;
+            background: #eff6ff;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .info-item span {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .controls {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group.full-width {
+            grid-column: 1 / -1;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-box {
+            display: flex;
+            justify-content: space-between;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .zoom-badge {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>볼록렌즈 광선 추적 (Ray Tracing)</h1>
+    </header>
+
+    <canvas id="opticsCanvas" width="800" height="480"></canvas>
+
+    <div class="info-bar" id="infoPanel">
+        <div class="info-item">상 위치(b): <span id="outB">0</span> cm</div>
+        <div class="info-item">배율(m): <span id="outM">0</span></div>
+        <div class="info-item">상 종류: <span id="outType">-</span></div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group full-width">
+            <div class="val-box">
+                <label>🔍 화면 축소/확대 (Zoom)</label>
+                <span class="badge zoom-badge" id="valZoom">100%</span>
+            </div>
+            <input type="range" id="inputZoom" min="20" max="150" value="100">
+        </div>
+        <div class="control-group">
+            <div class="val-box">
+                <label>초점 거리 (f)</label>
+                <span class="badge" id="valF">80 cm</span>
+            </div>
+            <input type="range" id="inputF" min="40" max="200" value="80">
+        </div>
+        <div class="control-group">
+            <div class="val-box">
+                <label>물체 거리 (a)</label>
+                <span class="badge" id="valA">200 cm</span>
+            </div>
+            <input type="range" id="inputA" min="10" max="600" value="200">
+        </div>
+        <div class="control-group">
+            <div class="val-box">
+                <label>물체 높이 (h)</label>
+                <span class="badge" id="valH">60 cm</span>
+            </div>
+            <input type="range" id="inputH" min="10" max="120" value="60">
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('opticsCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const inputF = document.getElementById('inputF');
+    const inputA = document.getElementById('inputA');
+    const inputH = document.getElementById('inputH');
+    const inputZoom = document.getElementById('inputZoom');
+    
+    const valF = document.getElementById('valF');
+    const valA = document.getElementById('valA');
+    const valH = document.getElementById('valH');
+    const valZoom = document.getElementById('valZoom');
+    
+    const outB = document.getElementById('outB');
+    const outM = document.getElementById('outM');
+    const outType = document.getElementById('outType');
+
+    let f = 80;
+    let a = 200;
+    let h_obj = 60;
+    let zoom = 1.0;
+
+    function updateValues() {
+        f = parseInt(inputF.value);
+        a = parseInt(inputA.value);
+        h_obj = parseInt(inputH.value);
+        zoom = parseInt(inputZoom.value) / 100;
+
+        valF.textContent = `${f} cm`;
+        valA.textContent = `${a} cm`;
+        valH.textContent = `${h_obj} cm`;
+        valZoom.textContent = `${Math.round(zoom * 100)}%`;
+
+        draw();
+    }
+
+    inputF.addEventListener('input', updateValues);
+    inputA.addEventListener('input', updateValues);
+    inputH.addEventListener('input', updateValues);
+    inputZoom.addEventListener('input', updateValues);
+
+    function drawArrow(x, yBase, yTip, color, label) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, yBase);
+        ctx.lineTo(x, yTip);
+        ctx.stroke();
+
+        const head = 10;
+        const dir = yTip < yBase ? -1 : 1;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, yTip);
+        ctx.lineTo(x - 5, yTip - dir * head);
+        ctx.lineTo(x + 5, yTip - dir * head);
+        ctx.fill();
+
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(label, x - 15, yTip < yBase ? yTip - 10 : yTip + 20);
+    }
+
+    function drawDimension(xStart, xEnd, y, label, color, isDashed = false) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1;
+        if (isDashed) ctx.setLineDash([3, 3]);
+        else ctx.setLineDash([]);
+        
+        ctx.beginPath();
+        ctx.moveTo(xStart, y);
+        ctx.lineTo(xEnd, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.moveTo(xStart, y - 5); ctx.lineTo(xStart, y + 5);
+        ctx.moveTo(xEnd, y - 5); ctx.lineTo(xEnd, y + 5);
+        ctx.stroke();
+
+        ctx.font = "italic 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(label, (xStart + xEnd) / 2, y - 8);
+        ctx.textAlign = "start";
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2 - 40; 
+
+        // 1. 광축
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(canvas.width, centerY);
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. 렌즈 형태 (Zoom에 영향을 받지 않거나 최소한으로 조절)
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, 15 * Math.min(zoom, 1.2), 150 * zoom, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(186, 230, 253, 0.5)";
+        ctx.fill();
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 3. 초점 표시 (Zoom 적용)
+        const drawFocalPoint = (x, label) => {
+            ctx.fillStyle = "#1e293b";
+            ctx.beginPath();
+            ctx.arc(x, centerY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = "11px sans-serif";
+            ctx.fillText(label, x - 5, centerY + 18);
+        };
+        drawFocalPoint(centerX - (f * zoom), "F");
+        drawFocalPoint(centerX + (f * zoom), "F'");
+
+        // 4. 물리 계산
+        let b, m, h_img, isReal;
+        if (a === f) {
+            b = Infinity; m = Infinity; h_img = Infinity; isReal = null;
+        } else {
+            b = (a * f) / (a - f);
+            m = -b / a;
+            h_img = m * h_obj;
+            isReal = b > 0;
+        }
+
+        // 5. 물체 그리기 (Zoom 적용)
+        const objX = centerX - (a * zoom);
+        const objY = centerY - (h_obj * zoom);
+        drawArrow(objX, centerY, objY, "#2563eb", "물체(O)");
+        
+        // 물체 거리(a) 표시
+        drawDimension(objX, centerX, centerY + 50, `a = ${a}cm`, "#64748b");
+
+        // 6. 상 그리기, 광선 추적, 상/초점 거리 표시
+        if (b !== Infinity && Math.abs(b * zoom) < 5000) {
+            const imgX = centerX + (b * zoom);
+            const imgY = centerY - (h_img * zoom);
+            const imgColor = isReal ? "#ef4444" : "#8b5cf6";
+
+            ctx.globalAlpha = isReal ? 1.0 : 0.6;
+            drawArrow(imgX, centerY, imgY, imgColor, isReal ? "실상(I)" : "허상(I)");
+            ctx.globalAlpha = 1.0;
+
+            // 상 거리(b) 표시
+            drawDimension(centerX, imgX, centerY + 70, `b = ${Math.abs(b).toFixed(1)}cm`, imgColor);
+
+            // 광선 1: 평행광
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#f59e0b"; 
+            ctx.beginPath(); 
+            ctx.moveTo(objX, objY); 
+            ctx.lineTo(centerX, objY); 
+            ctx.stroke();
+
+            ctx.beginPath(); 
+            ctx.moveTo(centerX, objY);
+            if (isReal) { 
+                ctx.lineTo(imgX, imgY); 
+            } else {
+                // 발산 광선 연장선 계산
+                const slope = (imgY - objY) / (imgX - centerX);
+                ctx.lineTo(centerX + 800, objY + slope * 800);
+                ctx.save(); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(centerX, objY); ctx.lineTo(imgX, imgY); ctx.stroke(); ctx.restore();
+            }
+            ctx.stroke();
+
+            // 광선 2: 중심 통과
+            ctx.strokeStyle = "#10b981"; 
+            ctx.beginPath(); 
+            ctx.moveTo(objX, objY);
+            if (isReal) { 
+                ctx.lineTo(imgX, imgY); 
+            } else {
+                const slope = (objY - centerY) / (objX - centerX);
+                ctx.lineTo(centerX + 800, centerY + slope * 800);
+                ctx.save(); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(imgX, imgY); ctx.stroke(); ctx.restore();
+            }
+            ctx.stroke();
+
+            // 정보 업데이트
+            outB.textContent = Math.abs(b).toFixed(1);
+            outM.textContent = Math.abs(m).toFixed(2);
+            let type = isReal ? "도립 실상" : "정립 허상";
+            const absM = Math.abs(m);
+            let size = (Math.abs(absM - 1) < 0.01) ? "같은 크기" : (absM > 1 ? "확대" : "축소");
+            outType.textContent = `${type}, ${size}`;
+        } else {
+            outB.textContent = "∞ (무한대)";
+            outM.textContent = "-";
+            outType.textContent = "상이 맺히지 않음";
+        }
+
+        // 7. 초점 거리(f) 표시 (Zoom 적용)
+        drawDimension(centerX, centerX + (f * zoom), centerY + 90, `f = ${f}cm`, "#1e293b");
+    }
+
+    updateValues();
+</script>
+</body>
+</html>
