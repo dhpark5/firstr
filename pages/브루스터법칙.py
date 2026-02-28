@@ -17,7 +17,7 @@ try:
         html_data = f.read()
     
     # 스트림릿 화면에 HTML 렌더링 (height를 넉넉히 주어 스크롤 없이 다 보이게 설정)
-    components.html(html_data, height=1200, scrolling=False)
+    components.html(html_data, height=1000, scrolling=False)
 
 except FileNotFoundError:
     st.error(f"'{html_file_path}' 파일을 찾을 수 없습니다. 깃허브에서 HTML 파일 이름이 정확히 'Brewster.html'로 변경되었는지 확인해주세요.")
