@@ -59,9 +59,9 @@ with st.sidebar:
         st.page_link(page_RLC)
         
     with st.expander("광학", expanded=False):
-        st.page_link(page_lens)
-        st.page_link(page_brewster)
         st.page_link(page_snell)
+        st.page_link(page_lens)        
+        st.page_link(page_brewster)        
         
     with st.expander("SF", expanded=False):
         st.page_link(page_sf)
