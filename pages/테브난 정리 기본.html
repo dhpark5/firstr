@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>테브난 정리 심화 변환 과정</title>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            color: #334155;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            max-width: 900px;
+            width: 100%;
+        }
+        h2 { text-align: center; color: #1e293b; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #64748b; font-size: 0.95rem; margin-bottom: 25px; }
+        
+        /* 탭 버튼 스타일 */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        button {
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            background-color: #fff;
+            color: #64748b;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+        button:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+        button.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+        
+        /* 캔버스 영역 */
+        .canvas-wrapper {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* 설명 및 수식 박스 */
+        .info-box {
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 6px solid #2563eb;
+        }
+        .step-header {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e40af;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-desc {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #334155;
+            margin-bottom: 15px;
+        }
+        
+        /* 수학 수식 스타일 */
+        .math-block {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.2rem;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center; /* 수식 중앙 정렬 */
+        }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 5px;
+        }
+        .numerator {
+            border-bottom: 1px solid #000;
+            padding: 0 5px;
+            text-align: center;
+        }
+        .denominator {
+            padding: 0 5px;
+            text-align: center;
+        }
+        .variable { font-style: italic; font-weight: bold; }
+        .sub { font-size: 0.7em; vertical-align: sub; }
+        
+        /* 강조 색상 */
+        .hl-red { color: #dc2626; font-weight: bold; }
+        .hl-blue { color: #2563eb; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>테브난 정리 심화 과정</h2>
+    <p class="subtitle">전압원(Vs)과 전류원(Is)이 혼합된 회로의 등가 변환</p>
+    
+    <div class="btn-group">
+        <button onclick="setStep(1)" id="btn1" class="active">1. 원본 회로</button>
+        <button onclick="setStep(2)" id="btn2">2. Vth 계산</button>
+        <button onclick="setStep(3)" id="btn3">3. Rth 계산</button>
+        <button onclick="setStep(4)" id="btn4">4. 등가 완성</button>
+    </div>
+
+    <div class="canvas-wrapper">
+        <canvas id="simCanvas" width="900" height="400"></canvas>
+    </div>
+
+    <div class="info-box">
+        <div class="step-header" id="stepTitle">1단계: 회로 구조 파악</div>
+        <div class="step-desc" id="stepDesc">
+            설명이 여기에 표시됩니다.
+        </div>
+        <div class="math-block" id="mathDisplay" style="display:none;">
+            <!-- 수식 들어가는 곳 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentStep = 1;
+
+    // --- 그리기 함수들 ---
+    function drawResistor(x, y, vertical, label, color="#333") {
+        ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+        ctx.beginPath();
+        const len = 30, zig = 8;
+        if (vertical) {
+            ctx.moveTo(x, y-len); ctx.lineTo(x, y-15);
+            for(let i=0; i<6; i++) ctx.lineTo(x + (i%2==0?8:-8), y-15 + i*5);
+            ctx.lineTo(x, y+15); ctx.lineTo(x, y+len);
+            ctx.stroke();
+            ctx.font = "bold 14px sans-serif"; ctx.textAlign="left";
+            ctx.fillText(label, x+15, y+5);
+        } else {
+            ctx.moveTo(x-len, y); ctx.lineTo(x-15, y);
+            for(let i=0; i<6; i++) ctx.lineTo(x-15 + i*5, y + (i%2==0?8:-8));
+            ctx.lineTo(x+15, y); ctx.lineTo(x+len, y);
+            ctx.stroke();
+            ctx.font = "bold 14px sans-serif"; ctx.textAlign="center";
+            ctx.fillText(label, x, y-20);
+        }
+    }
+
+    function drawVoltageSource(x, y, label, active=true) {
+        if (!active) {
+            // Short (단락)
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(x, y-25); ctx.lineTo(x, y+25); ctx.stroke();
+            ctx.fillStyle = "#ef4444"; ctx.textAlign="right"; ctx.font="bold 14px sans-serif";
+            ctx.fillText("Short", x-10, y+5);
+            return;
+        }
+        ctx.strokeStyle = "#2563eb"; ctx.fillStyle = "#2563eb"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI*2); ctx.stroke();
+        ctx.font = "bold 16px sans-serif"; ctx.textAlign="center";
+        ctx.fillText("+", x, y-8); ctx.fillText("-", x, y+16);
+        ctx.textAlign="right"; ctx.fillText(label, x-30, y+5);
+    }
+
+    function drawCurrentSource(x, y, label, active=true) {
+        if (!active) {
+            // Open (개방)
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+            ctx.setLineDash([3,3]);
+            ctx.beginPath(); ctx.moveTo(x, y-25); ctx.lineTo(x, y-10); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y-10, 3, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y+25); ctx.lineTo(x, y+10); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y+10, 3, 0, Math.PI*2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#ef4444"; ctx.textAlign="left"; ctx.font="bold 14px sans-serif";
+            ctx.fillText("Open", x+15, y+5);
+            return;
+        }
+        ctx.strokeStyle = "#16a34a"; ctx.fillStyle = "#16a34a"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI*2); ctx.stroke();
+        // Arrow
+        ctx.beginPath(); ctx.moveTo(x, y+12); ctx.lineTo(x, y-12);
+        ctx.lineTo(x-6, y-4); ctx.moveTo(x, y-12); ctx.lineTo(x+6, y-4);
+        ctx.stroke();
+        ctx.textAlign="left"; ctx.fillText(label, x+25, y+5);
+    }
+
+    function drawBox(x, y, w, h, label) {
+        ctx.strokeStyle = "#3b82f6"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#3b82f6"; ctx.font = "bold 14px sans-serif"; ctx.textAlign="left";
+        ctx.fillText(label, x+10, y+25);
+    }
+
+    function drawTerminal(x, y, label) {
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fillStyle = "black"; ctx.fill();
+        ctx.font = "bold 16px sans-serif"; ctx.textAlign="left"; ctx.fillText(label, x+10, y+5);
+    }
+
+    function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cy = 200; // Center Y
+
+        if (currentStep < 4) {
+            // --- 내부 회로 (Internal) ---
+            drawBox(50, 50, 450, 300, "내부 회로");
+
+            // 1. 전압원 Vs (왼쪽)
+            drawVoltageSource(100, cy, "Vs", currentStep !== 3);
+
+            // 2. 저항 R1 (상단 직렬)
+            drawResistor(200, cy-100, false, "R1");
+
+            // 3. 전류원 Is (중간 병렬)
+            drawCurrentSource(300, cy, "Is", currentStep !== 3);
+
+            // 4. 저항 R2 (오른쪽 병렬)
+            drawResistor(400, cy, true, "R2");
+
+            // 배선 (Wires)
+            ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+            
+            // Vs Loop
+            ctx.beginPath();
+            ctx.moveTo(100, cy-25); ctx.lineTo(100, cy-100); ctx.lineTo(170, cy-100); // Vs up -> R1
+            ctx.moveTo(230, cy-100); ctx.lineTo(300, cy-100); ctx.lineTo(300, cy-25); // R1 -> Is top
+            ctx.moveTo(300, cy-100); ctx.lineTo(400, cy-100); ctx.lineTo(400, cy-30); // Node -> R2 top
+            
+            ctx.moveTo(100, cy+25); ctx.lineTo(100, cy+100); ctx.lineTo(400, cy+100); ctx.lineTo(400, cy+30); // Ground
+            ctx.moveTo(300, cy+25); ctx.lineTo(300, cy+100); // Is bot connection
+            ctx.stroke();
+
+            // Output Lines
+            ctx.beginPath();
+            ctx.moveTo(400, cy-100); ctx.lineTo(550, cy-100); // To A
+            ctx.moveTo(400, cy+100); ctx.lineTo(550, cy+100); // To B
+            ctx.stroke();
+
+            drawTerminal(550, cy-100, "A");
+            drawTerminal(550, cy+100, "B");
+
+        } else {
+            // --- 등가 회로 (Equivalent) ---
+            drawBox(200, 50, 300, 300, "테브난 등가회로");
+            drawVoltageSource(250, cy, "Vth");
+            drawResistor(380, cy-100, false, "Rth", "#16a34a");
+
+            ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(250, cy-25); ctx.lineTo(250, cy-100); ctx.lineTo(350, cy-100);
+            ctx.moveTo(410, cy-100); ctx.lineTo(550, cy-100); // To A
+            ctx.moveTo(250, cy+25); ctx.lineTo(250, cy+100); ctx.lineTo(550, cy+100); // To B
+            ctx.stroke();
+
+            drawTerminal(550, cy-100, "A");
+            drawTerminal(550, cy+100, "B");
+        }
+
+        // --- 외부 부하 (External) ---
+        const tx = 550;
+        if (currentStep === 1 || currentStep === 4) {
+            ctx.strokeStyle = "#d97706"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(tx, cy-100); ctx.lineTo(tx+100, cy-100); ctx.lineTo(tx+100, cy-30);
+            ctx.moveTo(tx, cy+100); ctx.lineTo(tx+100, cy+100); ctx.lineTo(tx+100, cy+30);
+            ctx.stroke();
+            drawResistor(tx+100, cy, true, "RL", "#d97706");
+        } else if (currentStep === 2) {
+            // Vth 측정 (전압계)
+            ctx.strokeStyle = "#dc2626"; ctx.setLineDash([4,4]);
+            ctx.beginPath(); ctx.moveTo(tx, cy-100); ctx.lineTo(tx+50, cy-20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(tx, cy+100); ctx.lineTo(tx+50, cy+20); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.beginPath(); ctx.arc(tx+50, cy, 25, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = "#dc2626"; ctx.font="bold 16px sans-serif"; ctx.textAlign="center";
+            ctx.fillText("V", tx+50, cy+5);
+            ctx.fillText("개방 전압 측정", tx+50, cy+45);
+        } else if (currentStep === 3) {
+            // Rth 측정 (눈)
+            ctx.fillStyle = "#16a34a";
+            ctx.beginPath(); ctx.arc(tx+30, cy, 5, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#16a34a"; ctx.lineWidth=3;
+            ctx.beginPath(); 
+            ctx.moveTo(tx+10, cy); ctx.quadraticCurveTo(tx+30, cy-20, tx+50, cy); 
+            ctx.quadraticCurveTo(tx+30, cy+20, tx+10, cy);
+            ctx.stroke();
+            ctx.textAlign="left"; ctx.fillText("저항 측정 (전원 OFF)", tx+60, cy+5);
+        }
+    }
+
+    function setStep(n) {
+        currentStep = n;
+        for(let i=1; i<=4; i++) document.getElementById(`btn${i}`).className = (i===n) ? "active" : "";
+        
+        const title = document.getElementById('stepTitle');
+        const desc = document.getElementById('stepDesc');
+        const math = document.getElementById('mathDisplay');
+        
+        if(n===1) {
+            title.textContent = "1단계: 원본 회로 분석";
+            desc.innerHTML = `내부 회로에 <b>전압원(Vs)</b>과 <b>전류원(Is)</b>이 함께 있습니다. 이 복잡한 회로를 단순화하려고 합니다.`;
+            math.style.display = "none";
+        } else if(n===2) {
+            title.textContent = "2단계: 테브난 전압 (Vth) 계산";
+            desc.innerHTML = `부하 RL을 떼어내고, 단자 A-B 사이의 개방 전압(Open Circuit Voltage)을 구합니다.<br>이때는 내부의 모든 전원(Vs, Is)이 켜져 있어야 합니다. <b>중첩의 원리</b>나 <b>노드 해석법</b>을 사용합니다.`;
+            math.style.display = "flex";
+            math.innerHTML = `
+                <div>노드 A의 전압을 구하면 됩니다. (접지 기준)</div>
+                <div>
+                    <span class="variable">V<span class="sub">th</span></span> = 
+                    <span class="variable">V<span class="sub">s</span></span> + 
+                    <span class="variable">R<span class="sub">1</span></span> × 
+                    <span class="variable">I<span class="sub">s</span></span>
+                    &nbsp;&nbsp;&nbsp; (또는 회로 구조에 따라 다름)
+                </div>
+                <div style="font-size: 0.9rem; color: #666;">* 위 식은 예시이며, 실제로는 KCL을 적용하여 계산합니다: (Vth - Vs)/R1 = Is - Vth/R2</div>
+            `;
+        } else if(n===3) {
+            title.textContent = "3단계: 테브난 저항 (Rth) 계산";
+            desc.innerHTML = `내부의 모든 독립 전원을 끕니다.<br><span class="hl-red">전압원(Vs) → 단락(Short, 전선 연결)</span><br><span class="hl-red">전류원(Is) → 개방(Open, 회로 끊기)</span><br>이 상태에서 단자 A-B 안쪽을 들여다본 합성 저항을 구합니다.`;
+            math.style.display = "flex";
+            math.innerHTML = `
+                <div>전압원은 전선이 되고, 전류원은 사라졌으므로:</div>
+                <div>
+                    <span class="variable">R<span class="sub">th</span></span> = 
+                    <span class="variable">R<span class="sub">1</span></span> || 
+                    <span class="variable">R<span class="sub">2</span></span> = 
+                    <div class="fraction">
+                        <div class="numerator"><span class="variable">R<span class="sub">1</span></span> × <span class="variable">R<span class="sub">2</span></span></div>
+                        <div class="denominator"><span class="variable">R<span class="sub">1</span></span> + <span class="variable">R<span class="sub">2</span></span></div>
+                    </div>
+                </div>
+            `;
+        } else if(n===4) {
+            title.textContent = "4단계: 등가 회로 완성";
+            desc.innerHTML = `구해낸 <b>Vth</b>와 <b>Rth</b>를 직렬로 연결하면 테브난 등가회로가 완성됩니다.<br>이제 부하 RL을 다시 연결하고 전체 전류를 쉽게 구할 수 있습니다.`;
+            math.style.display = "flex";
+            math.innerHTML = `
+                <div>최종 부하 전류 (Load Current):</div>
+                <div>
+                    <span class="variable">I<span class="sub">L</span></span> = 
+                    <div class="fraction">
+                        <div class="numerator"><span class="variable">V<span class="sub">th</span></span></div>
+                        <div class="denominator"><span class="variable">R<span class="sub">th</span></span> + <span class="variable">R<span class="sub">L</span></span></div>
+                    </div>
+                </div>
+            `;
+        }
+        drawScene();
+    }
+
+    drawScene();
+</script>
+
+</body>
+</html>

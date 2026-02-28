@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>테브난 정리 심화 과정 (판서 모드)</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #16a34a;
+            --danger-color: #dc2626;
+            --bg-color: #f8fafc;
+            --text-color: #334155;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        header { text-align: center; margin-bottom: 25px; }
+        h1 { margin: 0; font-size: 1.6rem; color: #1e293b; }
+        p { color: #64748b; margin-top: 8px; }
+
+        /* 탭 버튼 영역 */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        button {
+            padding: 12px 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            background-color: #fff;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+        button:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+        button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+
+        /* 캔버스 (회로도) */
+        .canvas-container {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas { display: block; }
+
+        /* 설명 및 수식 영역 */
+        .info-panel {
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 6px solid var(--primary-color);
+        }
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1e40af;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .math-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #0f172a;
+        }
+
+        /* 수식 스타일링 (LaTeX 느낌) */
+        .equation {
+            font-family: 'Times New Roman', serif;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 4px;
+        }
+        .frac-top {
+            border-bottom: 1px solid #000;
+            padding: 0 4px;
+            text-align: center;
+        }
+        .frac-bot {
+            padding: 0 4px;
+            text-align: center;
+        }
+        .sub { font-size: 0.7em; vertical-align: sub; }
+        .bold-math { font-weight: bold; font-family: sans-serif; color: #1e293b; }
+        
+        .var-R { color: #334155; font-weight: bold; }
+        .var-V { color: var(--primary-color); font-weight: bold; }
+        .var-I { color: var(--secondary-color); font-weight: bold; }
+        
+        .desc-text {
+            font-size: 0.95rem;
+            color: #475569;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        /* 방법 구분 박스 */
+        .method-box {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .method-title {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+            display: block;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>테브난 등가회로 변환 (완전 분석)</h1>
+        <p>전압원(Vs)과 전류원(Is)이 혼합된 회로의 해석</p>
+    </header>
+
+    <div class="btn-group">
+        <button onclick="setStep(1)" id="btn1" class="active">STEP 1<br>원본 회로</button>
+        <button onclick="setStep(2)" id="btn2">STEP 2<br>Vth 유도</button>
+        <button onclick="setStep(3)" id="btn3">STEP 3<br>Rth 유도</button>
+        <button onclick="setStep(4)" id="btn4">STEP 4<br>최종 회로</button>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="circuitCanvas" width="850" height="380"></canvas>
+    </div>
+
+    <div class="info-panel">
+        <div class="step-title" id="stepTitle">1단계</div>
+        <div class="math-content" id="mathContent">
+            <!-- 내용이 자바스크립트로 로드됩니다 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentStep = 1;
+
+    // --- 그리기 함수 ---
+    function drawLine(x1, y1, x2, y2, color="#333", width=2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+    }
+
+    function drawResistor(x, y, vertical, label, color="#333") {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const size = 30; const zig = 7;
+        if (vertical) {
+            ctx.moveTo(x, y-size); ctx.lineTo(x, y-15);
+            for(let i=0; i<6; i++) ctx.lineTo(x + (i%2==0?zig:-zig), y-15 + i*5);
+            ctx.lineTo(x, y+15); ctx.lineTo(x, y+size);
+            ctx.stroke();
+            ctx.font = "bold 14px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+            ctx.fillText(label, x+15, y);
+        } else {
+            ctx.moveTo(x-size, y); ctx.lineTo(x-15, y);
+            for(let i=0; i<6; i++) ctx.lineTo(x-15 + i*5, y + (i%2==0?zig:-zig));
+            ctx.lineTo(x+15, y); ctx.lineTo(x+size, y);
+            ctx.stroke();
+            ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+            ctx.fillText(label, x, y-15);
+        }
+    }
+
+    function drawSourceV(x, y, label, active) {
+        if (!active) {
+            drawLine(x, y-25, x, y+25, "#dc2626", 4);
+            ctx.fillStyle = "#dc2626"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "right";
+            ctx.fillText("Short", x-10, y); return;
+        }
+        ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI*2);
+        ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = "#2563eb"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("+", x, y-8); ctx.fillText("-", x, y+10);
+        ctx.textAlign = "right"; ctx.fillText(label, x-25, y);
+    }
+
+    function drawSourceI(x, y, label, active) {
+        if (!active) {
+            drawLine(x, y-25, x, y-8, "#dc2626", 2); 
+            drawLine(x, y+8, x, y+25, "#dc2626", 2);
+            ctx.beginPath(); ctx.arc(x, y-8, 3, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y+8, 3, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = "#dc2626"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "left";
+            ctx.fillText("Open", x+15, y); return;
+        }
+        ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI*2);
+        ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#16a34a"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y+10); ctx.lineTo(x, y-10); ctx.lineTo(x-5, y-5); ctx.moveTo(x, y-10); ctx.lineTo(x+5, y-5); ctx.stroke();
+        ctx.fillStyle = "#16a34a"; ctx.textAlign = "left"; ctx.fillText(label, x+25, y);
+    }
+
+    function drawTerminal(x, y, label) {
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fillStyle = "black"; ctx.fill();
+        ctx.font = "bold 16px sans-serif"; ctx.textAlign = "left"; ctx.fillText(label, x+10, y+5);
+    }
+
+    // --- 메인 그리기 ---
+    function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cy = 200;
+
+        if (currentStep < 4) {
+            const xVs = 100, xR1 = 200, xNode1 = 300, xR2 = 400, xNode2 = 500, xR4 = 600, xOut = 750;
+
+            // Wires
+            drawLine(xVs, cy-25, xVs, cy-100); 
+            drawLine(xVs, cy-100, xR1-30, cy-100); 
+            drawLine(xR1+30, cy-100, xNode1, cy-100);
+            
+            drawLine(xNode1, cy-100, xNode1, cy-25);
+            drawLine(xNode1, cy+25, xNode1, cy+100); // Ground connection always visible
+
+            drawLine(xNode1, cy-100, xR2-30, cy-100);
+            drawLine(xR2+30, cy-100, xNode2, cy-100);
+
+            drawLine(xNode2, cy-100, xNode2, cy-30);
+            drawLine(xNode2, cy+30, xNode2, cy+100);
+
+            drawLine(xNode2, cy-100, xR4-30, cy-100);
+            drawLine(xR4+30, cy-100, xOut, cy-100);
+
+            drawLine(xVs, cy+25, xVs, cy+100);
+            drawLine(xVs, cy+100, xOut, cy+100);
+
+            // Parts
+            drawSourceV(xVs, cy, "Vs", currentStep !== 3);
+            drawResistor(xR1, cy-100, false, "R1");
+            drawSourceI(xNode1, cy, "Is", currentStep !== 3);
+            drawResistor(xR2, cy-100, false, "R2");
+            drawResistor(xNode2, cy, true, "R3");
+            drawResistor(xR4, cy-100, false, "R4");
+
+            drawTerminal(xOut, cy-100, "A");
+            drawTerminal(xOut, cy+100, "B");
+
+            // Node Labels for Step 2
+            if(currentStep === 2) {
+                ctx.fillStyle = "#d97706"; ctx.font = "bold 12px sans-serif";
+                ctx.fillText("Node 1 (V1)", xNode1, cy-115);
+                ctx.fillText("Node 2 (V2)", xNode2, cy-115);
+                ctx.beginPath(); ctx.arc(xNode1, cy-100, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(xNode2, cy-100, 4, 0, Math.PI*2); ctx.fill();
+            }
+
+            if (currentStep === 1) {
+                drawLine(xOut, cy-100, xOut+80, cy-100, "#d97706");
+                drawLine(xOut+80, cy-100, xOut+80, cy-30, "#d97706");
+                drawResistor(xOut+80, cy, true, "RL", "#d97706");
+                drawLine(xOut+80, cy+30, xOut+80, cy+100, "#d97706");
+                drawLine(xOut+80, cy+100, xOut, cy+100, "#d97706");
+            }
+
+        } else {
+            // Equivalent Circuit
+            const ex = 250, ey = 200;
+            drawLine(ex, ey-25, ex, ey-100);
+            drawLine(ex, ey-100, ex+100, ey-100);
+            drawLine(ex+160, ey-100, ex+300, ey-100);
+            drawLine(ex, ey+25, ex, ey+100);
+            drawLine(ex, ey+100, ex+300, ey+100);
+
+            drawSourceV(ex, ey, "Vth", true);
+            drawResistor(ex+130, ey-100, false, "Rth", "#16a34a");
+            drawTerminal(ex+300, ey-100, "A");
+            drawTerminal(ex+300, ey+100, "B");
+
+            const tx = ex+300;
+            drawLine(tx, ey-100, tx+80, ey-100, "#d97706");
+            drawLine(tx+80, ey-100, tx+80, ey-30, "#d97706");
+            drawResistor(tx+80, ey, true, "RL", "#d97706");
+            drawLine(tx+80, ey+30, tx+80, ey+100, "#d97706");
+            drawLine(tx+80, ey+100, tx, ey+100, "#d97706");
+        }
+    }
+
+    function setStep(n) {
+        currentStep = n;
+        for(let i=1; i<=4; i++) document.getElementById(`btn${i}`).className = (i===n) ? "active" : "";
+        
+        const title = document.getElementById('stepTitle');
+        const content = document.getElementById('mathContent');
+
+        if (n===1) {
+            title.innerText = "1단계: 원본 회로 분석";
+            content.innerHTML = `
+                <div class="desc-text"><b>회로 구조:</b> 사다리형 (Ladder) 회로입니다.</div>
+                <div class="desc-text">전압원 <span class="var-V">Vs</span>와 전류원 <span class="var-I">Is</span>가 혼합되어 있어 일반적인 직/병렬 계산으로는 해석이 어렵습니다.</div>
+                <div class="desc-text">오른쪽의 부하 <span class="var-R" style="color:#d97706">RL</span>을 제외한 나머지 부분을 테브난 등가회로로 변환해 봅시다.</div>
+            `;
+        } else if (n===2) {
+            title.innerText = "2단계: 테브난 전압 (Vth) 구하기";
+            content.innerHTML = `
+                <div class="desc-text">부하를 떼어내고(Open), 단자 A-B 사이의 전압을 구합니다. (R4에는 전류가 흐르지 않으므로 전압강하가 없습니다. 즉, <b>Vth = V2</b>)</div>
+                
+                <div class="method-box">
+                    <span class="method-title">방법 1: 중첩의 원리 (Superposition Principle)</span>
+                    <div class="equation">
+                        <span class="var-V">V<span class="sub">th</span></span> = 
+                        <span class="var-V">V<span class="sub">s_only</span></span> (Is 개방) + 
+                        <span class="var-V">V<span class="sub">Is_only</span></span> (Vs 단락)
+                    </div>
+                    
+                    <div class="desc-text" style="font-size:0.9rem; margin-top:8px;">
+                        <b>① Vs만 작동 (Is 개방):</b> R1, R2, R3는 직렬 회로가 됩니다. <span style="color:#64748b">(전압 분배 법칙)</span>
+                    </div>
+                    <div class="equation">
+                        <span class="var-V">V<span class="sub">s_only</span></span> = 
+                        <span class="var-V">V<span class="sub">s</span></span> × 
+                        <div class="frac"><div class="frac-top"><span class="var-R">R<span class="sub">3</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">1</span></span> + <span class="var-R">R<span class="sub">2</span></span> + <span class="var-R">R<span class="sub">3</span></span></div></div>
+                    </div>
+
+                    <div class="desc-text" style="font-size:0.9rem; margin-top:8px;">
+                        <b>② Is만 작동 (Vs 단락):</b> 전류 Is는 R1 쪽과 (R2+R3) 쪽으로 나뉩니다. <span style="color:#64748b">(전류 분배 법칙)</span>
+                    </div>
+                    <div class="equation">
+                        <span class="var-V">V<span class="sub">Is_only</span></span> = 
+                        <span class="var-R">R<span class="sub">3</span></span> × 
+                        I<span class="sub">R3</span> = <span class="var-R">R<span class="sub">3</span></span> × 
+                        ( <span class="var-I">I<span class="sub">s</span></span> × 
+                        <div class="frac"><div class="frac-top"><span class="var-R">R<span class="sub">1</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">1</span></span> + (<span class="var-R">R<span class="sub">2</span></span> + <span class="var-R">R<span class="sub">3</span></span>)</div></div> )
+                    </div>
+                </div>
+
+                <div class="method-box">
+                    <span class="method-title">방법 2: 노드 해석법 (Nodal Analysis) - 추천</span>
+                    <div class="desc-text">각 접속점(Node)의 전압을 미지수(V1, V2)로 두고 <b>KCL(키르히호프 전류 법칙)</b>을 적용합니다.</div>
+                    
+                    <div class="equation">
+                        <span class="bold-math">Node 1:</span>&nbsp;
+                        <div class="frac"><div class="frac-top"><span class="var-V">V<span class="sub">1</span></span> - <span class="var-V">V<span class="sub">s</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">1</span></span></div></div>
+                        - <span class="var-I">I<span class="sub">s</span></span> + 
+                        <div class="frac"><div class="frac-top"><span class="var-V">V<span class="sub">1</span></span> - <span class="var-V">V<span class="sub">2</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">2</span></span></div></div> = 0
+                    </div>
+                    <div class="equation">
+                        <span class="bold-math">Node 2:</span>&nbsp;
+                        <div class="frac"><div class="frac-top"><span class="var-V">V<span class="sub">2</span></span> - <span class="var-V">V<span class="sub">1</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">2</span></span></div></div>
+                        + <div class="frac"><div class="frac-top"><span class="var-V">V<span class="sub">2</span></span></div><div class="frac-bot"><span class="var-R">R<span class="sub">3</span></span></div></div> = 0
+                    </div>
+                    <div class="desc-text" style="font-size:0.9rem; color:#2563eb; margin-top:5px;">
+                        이 연립방정식을 풀어서 구한 <b>V2</b>가 곧 우리가 찾는 <b>Vth</b>입니다.
+                    </div>
+                </div>
+            `;
+        } else if (n===3) {
+            title.innerText = "3단계: 테브난 저항 (Rth) 구하기";
+            content.innerHTML = `
+                <div class="desc-text">내부의 모든 독립 전원을 끕니다 (Kill Sources).</div>
+                <div class="desc-text" style="margin-bottom:10px;">
+                    • <span class="var-V" style="color:#dc2626">Vs</span> $\\rightarrow$ 단락 (Short): 전선으로 연결<br>
+                    • <span class="var-I" style="color:#dc2626">Is</span> $\\rightarrow$ 개방 (Open): 끊어버림
+                </div>
+                <div class="method-box">
+                    <span class="method-title">합성 저항 계산 순서</span>
+                    <div class="equation">
+                        1. 왼쪽 끝: <span class="var-R">R<span class="sub">1</span></span>이 접지와 연결됨 (Vs 단락 때문)
+                    </div>
+                    <div class="equation">
+                        2. 중간: <span class="var-I">Is</span>가 끊어졌으므로, <span class="var-R">R<span class="sub">1</span></span>과 <span class="var-R">R<span class="sub">2</span></span>는 <b>직렬</b> 연결 상태
+                    </div>
+                    <div class="equation">
+                        3. <span class="var-R">R<span class="sub">3</span></span>와의 관계: 위 (<span class="var-R">R<span class="sub">1</span></span>+<span class="var-R">R<span class="sub">2</span></span>)가 <span class="var-R">R<span class="sub">3</span></span>와 <b>병렬</b> 연결됨
+                    </div>
+                    <div class="equation">
+                        4. 출력단: 마지막으로 <span class="var-R">R<span class="sub">4</span></span>가 <b>직렬</b>로 더해짐
+                    </div>
+                    <div class="equation" style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+                        <span class="bold-math">최종 식:</span>&nbsp;
+                        <span class="var-R">R<span class="sub">th</span></span> = 
+                        <span class="var-R">R<span class="sub">4</span></span> + 
+                        <div class="frac"><div class="frac-top"><span class="var-R">R<span class="sub">3</span></span> × (<span class="var-R">R<span class="sub">1</span></span> + <span class="var-R">R<span class="sub">2</span></span>)</div><div class="frac-bot"><span class="var-R">R<span class="sub">3</span></span> + <span class="var-R">R<span class="sub">1</span></span> + <span class="var-R">R<span class="sub">2</span></span></div></div>
+                    </div>
+                </div>
+            `;
+        } else if (n===4) {
+            title.innerText = "4단계: 등가회로 완성";
+            content.innerHTML = `
+                <div class="desc-text">구해낸 <span class="var-V">Vth</span>와 <span class="var-R" style="color:#16a34a">Rth</span>를 직렬로 연결하면 끝입니다.</div>
+                <div class="desc-text">이 단순한 회로는 복잡했던 원래 회로와 전기적으로 완벽하게 동일하게 동작합니다.</div>
+                <div class="method-box" style="text-align:center;">
+                    <div class="equation" style="justify-content:center;">
+                        <span class="var-I" style="color:#d97706">I<span class="sub">L</span></span> (부하 전류) = 
+                        <div class="frac">
+                            <div class="frac-top"><span class="var-V">V<span class="sub">th</span></span></div>
+                            <div class="frac-bot"><span class="var-R">R<span class="sub">th</span></span> + <span class="var-R" style="color:#d97706">R<span class="sub">L</span></span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        drawScene();
+    }
+
+    drawScene();
+</script>
+
+</body>
+</html>
