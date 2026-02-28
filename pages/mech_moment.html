@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>운동량 보존 법칙 시뮬레이션</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6; /* 물체 1 색상 */
+            --secondary-color: #ef4444; /* 물체 2 색상 */
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.6rem; color: #0f172a; }
+        .desc { font-size: 0.95rem; color: #64748b; margin-top: 8px; }
+
+        canvas {
+            width: 100%;
+            height: 250px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: block;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f1f5f9;
+            border-radius: 12px;
+        }
+
+        .result-box {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .result-val { font-size: 1.4rem; font-weight: 800; color: #0f172a; }
+        .result-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-play { background: #10b981; color: white; }
+        .btn-play:hover { background: #059669; }
+        .btn-reset { background: #e2e8f0; color: #475569; }
+        .btn-reset:hover { background: #cbd5e1; }
+
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-panel {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .badge-1 { color: var(--primary-color); font-weight: bold; }
+        .badge-2 { color: var(--secondary-color); font-weight: bold; }
+        .badge-sys { color: #8b5cf6; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>💥 1차원 운동량 보존 법칙 시뮬레이션</h1>
+        <p class="desc">두 물체의 충돌 전후 총 운동량(P)은 외력이 없다면 항상 보존됩니다. (P = m₁v₁ + m₂v₂)</p>
+    </header>
+
+    <canvas id="simCanvas" width="800" height="250"></canvas>
+
+    <div class="btn-group">
+        <button class="btn-play" id="btnPlay" onclick="togglePlay()">시작 (Play)</button>
+        <button class="btn-reset" onclick="resetSim()">초기화 (Reset)</button>
+    </div>
+
+    <div class="dashboard">
+        <div class="result-box">
+            <span class="result-title">물체 1의 운동량 (p₁)</span>
+            <div class="result-val" id="dispP1" style="color: var(--primary-color);">0 kg·m/s</div>
+            <div class="result-sub" id="dispV1">v₁ = 0 m/s</div>
+        </div>
+        <div class="result-box">
+            <span class="result-title">물체 2의 운동량 (p₂)</span>
+            <div class="result-val" id="dispP2" style="color: var(--secondary-color);">0 kg·m/s</div>
+            <div class="result-sub" id="dispV2">v₂ = 0 m/s</div>
+        </div>
+        <div class="result-box">
+            <span class="result-title">계의 총 운동량 (Σp)</span>
+            <div class="result-val" id="dispPtotal" style="color: #8b5cf6;">0 kg·m/s</div>
+            <div class="result-sub" id="dispStatus">충돌 전 (항상 일정)</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-panel" style="border-top: 4px solid var(--primary-color);">
+            <div class="control-group">
+                <label><span class="badge-1">물체 1 질량 (m₁)</span> <span id="valM1">1.0 kg</span></label>
+                <input type="range" id="inM1" min="0.5" max="5.0" step="0.5" value="1.0" oninput="updateSettings()">
+            </div>
+            <div class="control-group">
+                <label><span class="badge-1">물체 1 초기 속도 (u₁)</span> <span id="valU1">4.0 m/s</span></label>
+                <input type="range" id="inU1" min="-10" max="10" step="0.5" value="4.0" oninput="updateSettings()">
+            </div>
+        </div>
+
+        <div class="control-panel" style="border-top: 4px solid var(--secondary-color);">
+            <div class="control-group">
+                <label><span class="badge-2">물체 2 질량 (m₂)</span> <span id="valM2">2.0 kg</span></label>
+                <input type="range" id="inM2" min="0.5" max="5.0" step="0.5" value="2.0" oninput="updateSettings()">
+            </div>
+            <div class="control-group">
+                <label><span class="badge-2">물체 2 초기 속도 (u₂)</span> <span id="valU2">-2.0 m/s</span></label>
+                <input type="range" id="inU2" min="-10" max="10" step="0.5" value="-2.0" oninput="updateSettings()">
+            </div>
+        </div>
+        
+        <div class="control-panel" style="grid-column: 1 / -1; border-top: 4px solid #8b5cf6;">
+            <div class="control-group">
+                <label><span class="badge-sys">반발 계수 (e)</span> <span id="valE">1.0 (완전 탄성 충돌)</span></label>
+                <input type="range" id="inE" min="0" max="1" step="0.1" value="1.0" oninput="updateSettings()">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let isPlaying = false;
+    let hasCollided = false;
+    let animationId;
+
+    // 물리 변수
+    let m1 = 1.0, m2 = 2.0;
+    let u1 = 4.0, u2 = -2.0;
+    let e = 1.0;
+    
+    // 객체 상태
+    let obj1 = { x: 200, v: 4.0, m: 1.0, r: 25, color: '#3b82f6' };
+    let obj2 = { x: 600, v: -2.0, m: 2.0, r: 35, color: '#ef4444' };
+
+    // DOM 요소
+    const btnPlay = document.getElementById('btnPlay');
+    const dispP1 = document.getElementById('dispP1');
+    const dispP2 = document.getElementById('dispP2');
+    const dispPtotal = document.getElementById('dispPtotal');
+    const dispV1 = document.getElementById('dispV1');
+    const dispV2 = document.getElementById('dispV2');
+    const dispStatus = document.getElementById('dispStatus');
+
+    function updateSettings() {
+        if (isPlaying) return; // 실행 중에는 설정 변경 반영 보류 (초기화 후 반영)
+        
+        m1 = parseFloat(document.getElementById('inM1').value);
+        u1 = parseFloat(document.getElementById('inU1').value);
+        m2 = parseFloat(document.getElementById('inM2').value);
+        u2 = parseFloat(document.getElementById('inU2').value);
+        e = parseFloat(document.getElementById('inE').value);
+
+        document.getElementById('valM1').innerText = m1.toFixed(1) + " kg";
+        document.getElementById('valU1').innerText = u1.toFixed(1) + " m/s";
+        document.getElementById('valM2').innerText = m2.toFixed(1) + " kg";
+        document.getElementById('valU2').innerText = u2.toFixed(1) + " m/s";
+        
+        let eStr = e.toFixed(1);
+        if (e === 1.0) eStr += " (완전 탄성 충돌)";
+        else if (e === 0.0) eStr += " (완전 비탄성 충돌)";
+        else eStr += " (비탄성 충돌)";
+        document.getElementById('valE').innerText = eStr;
+
+        resetSim();
+    }
+
+    function resetSim() {
+        isPlaying = false;
+        hasCollided = false;
+        btnPlay.innerText = "시작 (Play)";
+        btnPlay.style.background = "#10b981";
+        dispStatus.innerText = "충돌 전";
+        
+        // 반경은 질량에 비례하여 시각적 차이 부여
+        obj1 = { x: 200, v: u1, m: m1, r: 20 + m1 * 4, color: '#3b82f6' };
+        obj2 = { x: 600, v: u2, m: m2, r: 20 + m2 * 4, color: '#ef4444' };
+        
+        cancelAnimationFrame(animationId);
+        updateDashboard();
+        draw();
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            btnPlay.innerText = "일시정지 (Pause)";
+            btnPlay.style.background = "#f59e0b";
+            loop();
+        } else {
+            btnPlay.innerText = "계속 (Resume)";
+            btnPlay.style.background = "#10b981";
+            cancelAnimationFrame(animationId);
+        }
+    }
+
+    function updateDashboard() {
+        const p1 = obj1.m * obj1.v;
+        const p2 = obj2.m * obj2.v;
+        const pTotal = p1 + p2;
+
+        dispP1.innerText = p1.toFixed(1) + " kg·m/s";
+        dispP2.innerText = p2.toFixed(1) + " kg·m/s";
+        dispPtotal.innerText = pTotal.toFixed(1) + " kg·m/s";
+
+        dispV1.innerText = `v₁ = ${obj1.v.toFixed(2)} m/s`;
+        dispV2.innerText = `v₂ = ${obj2.v.toFixed(2)} m/s`;
+    }
+
+    function drawArrow(x, y, v, color) {
+        if (Math.abs(v) < 0.1) return; // 속도가 거의 0이면 화살표 생략
+        const scale = 15; // 속도 화살표 길이 배율
+        const length = Math.abs(v) * scale;
+        const dir = v > 0 ? 1 : -1;
+        const endX = x + dir * length;
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(endX, y);
+        ctx.stroke();
+
+        // 화살촉
+        ctx.beginPath();
+        ctx.moveTo(endX, y);
+        ctx.lineTo(endX - dir * 8, y - 6);
+        ctx.lineTo(endX - dir * 8, y + 6);
+        ctx.fill();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cy = canvas.height / 2;
+
+        // 바닥 선
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, cy + 40);
+        ctx.lineTo(canvas.width, cy + 40);
+        ctx.stroke();
+
+        // 물체 1 (파란색)
+        ctx.fillStyle = obj1.color;
+        ctx.beginPath();
+        ctx.arc(obj1.x, cy + 40 - obj1.r, obj1.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("m₁", obj1.x, cy + 45 - obj1.r);
+
+        // 물체 2 (빨간색)
+        ctx.fillStyle = obj2.color;
+        ctx.beginPath();
+        ctx.arc(obj2.x, cy + 40 - obj2.r, obj2.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.fillText("m₂", obj2.x, cy + 45 - obj2.r);
+
+        // 속도 화살표 (물체 위쪽)
+        drawArrow(obj1.x, cy - 20 - obj1.r, obj1.v, obj1.color);
+        drawArrow(obj2.x, cy - 20 - obj2.r, obj2.v, obj2.color);
+    }
+
+    function loop() {
+        if (isPlaying) {
+            // 위치 업데이트 (화면 스케일에 맞게 속도 조정)
+            const dt = 0.5;
+            obj1.x += obj1.v * dt;
+            obj2.x += obj2.v * dt;
+
+            // 충돌 감지 (1차원)
+            if (!hasCollided && (obj2.x - obj1.x <= obj1.r + obj2.r)) {
+                // 두 물체가 서로 가까워지는 방향일 때만 충돌 처리
+                if (obj1.v > obj2.v) {
+                    // 충돌 후 속도 계산 (반발 계수 e 적용)
+                    const v1_final = ((obj1.m - e * obj2.m) * obj1.v + obj2.m * (1 + e) * obj2.v) / (obj1.m + obj2.m);
+                    const v2_final = (obj1.m * (1 + e) * obj1.v + (obj2.m - e * obj1.m) * obj2.v) / (obj1.m + obj2.m);
+
+                    obj1.v = v1_final;
+                    obj2.v = v2_final;
+                    hasCollided = true;
+                    
+                    dispStatus.innerText = "충돌 완료";
+                    dispStatus.style.color = "#ef4444";
+                    dispStatus.style.fontWeight = "bold";
+                }
+            }
+
+            // 화면을 벗어나면 정지 (무한 루프 방지)
+            if (obj1.x < -100 || obj1.x > canvas.width + 100 || obj2.x < -100 || obj2.x > canvas.width + 100) {
+                isPlaying = false;
+                btnPlay.innerText = "시작 (Play)";
+                btnPlay.style.background = "#10b981";
+            }
+
+            updateDashboard();
+            draw();
+            animationId = requestAnimationFrame(loop);
+        }
+    }
+
+    // 초기화 실행
+    updateSettings();
+</script>
+
+</body>
+</html>
