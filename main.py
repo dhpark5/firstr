@@ -18,7 +18,7 @@ def intro_page():
 
 # 3. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
 # 위에서 만든 intro_page 함수를 첫 화면(default=True)으로 지정합니다.
-page_home = st.Page(intro_page, title="DIY물리실험", icon="🏠", default=True)
+page_home = st.Page(intro_page, title="DIY물리실험", icon="▪️", default=True)
 
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
@@ -34,7 +34,7 @@ page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪
 
 # 4. 카테고리(폴더) 구조로 페이지들을 묶어줍니다.
 nav_structure = {
-    "🏠": [page_home],  # 소개 페이지 카테고리
+    "🏠DIY물리실험": [page_home],  # 소개 페이지 카테고리
     "🔹역학": [],
     "🔹전자기학": [page_Thevenin1, page_Thevenin2, page_RLC], 
     "🔹광학": [page_lens, page_brewster],
