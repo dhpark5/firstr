@@ -1,7 +1,7 @@
 import streamlit as st
 
 # 1. 페이지 기본 설정 (최상단)
-st.set_page_config(page_title="DIY물리실험", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="DIY물리실험", layout="wide", initial_sidebar_state="expanded")
 
 # --- 2. 홈 화면(소개글)을 그리는 함수 정의 ---
 def intro_page():
