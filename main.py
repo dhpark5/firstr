@@ -8,6 +8,7 @@ import streamlit as st
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
 page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="▪️")
+page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
 
 
 # 광학
@@ -22,7 +23,7 @@ page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪
 # 왼쪽 메뉴에 굵은 글씨로 카테고리 제목이 생성되고, 그 아래에 페이지들이 배치됩니다.
 nav_structure = {
     "🔹역학": [],
-    "🔹전자기학": [page_Thevenin1, page_Thevenin2], 
+    "🔹전자기학": [page_Thevenin1, page_Thevenin2, page_RLC], 
     "🔹광학": [page_lens, page_brewster],
     "🔹SF": [page_sf],
 }
