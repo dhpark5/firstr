@@ -6,8 +6,8 @@ import streamlit as st
 # 역학
 
 # 전자기학
-page_Thevenin1 = st.Page("pages/테브난1.py", title="테브난 정리 기본", icon="⚡")
-page_Thevenin2 = st.Page("pages/테브난2.py", title="테브난 정리 심화", icon="⚡")
+page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="⚡")
+page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="⚡")
 
 
 # 광학
