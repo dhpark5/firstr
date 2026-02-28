@@ -7,7 +7,9 @@ st.set_page_config(page_title="볼록렌즈 시뮬레이션", layout="wide")
 
 # 현재 파이썬 파일(볼록렌즈.py)과 같은 위치에 있는 HTML 파일의 경로를 자동으로 찾음
 current_dir = os.path.dirname(os.path.abspath(__file__))
-html_file_path = os.path.join(current_dir, "볼록렌즈.html")
+
+# 한글 인코딩(Mac 자소 분리) 오류를 원천 차단하기 위해 영문 파일명(lens.html) 사용
+html_file_path = os.path.join(current_dir, "lens.html")
 
 # HTML 파일 읽어오기 및 에러 처리
 try:
@@ -18,4 +20,4 @@ try:
     components.html(html_data, height=850, scrolling=False)
 
 except FileNotFoundError:
-    st.error(f"'{html_file_path}' 파일을 찾을 수 없습니다. pages 폴더 안에 HTML 파일이 있는지 확인해주세요.")
+    st.error(f"'{html_file_path}' 파일을 찾을 수 없습니다. 깃허브에서 HTML 파일 이름이 정확히 'lens.html'로 변경되었는지 확인해주세요.")
