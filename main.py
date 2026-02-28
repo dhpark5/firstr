@@ -18,7 +18,7 @@ def intro_page():
 page_home = st.Page(intro_page, title="DIY물리실험", icon="🏠", default=True)
 
 # 역학
-page_moment = st.Page("pages/moment.py", title="운동량 보존 법칙", icon="▪️")
+page_moment = st.Page("pages/mech_moment.py", title="운동량 보존 법칙", icon="▪️")
 
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
