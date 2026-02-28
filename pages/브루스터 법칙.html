@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>브루스터 법칙과 쌍극자 방사 시뮬레이션</title>
+
+    <!-- MathJax 로드 (LaTeX 수식 렌더링용) -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+    <style>
+        :root {
+            --p-color: #2563eb; /* p-편광 (파랑) */
+            --s-color: #dc2626; /* s-편광 (빨강) */
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-color: #1e293b;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1050px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h1 { margin: 0; font-size: 1.6rem; color: #0f172a; }
+        .desc { font-size: 0.95rem; color: #64748b; margin-top: 8px; line-height: 1.5; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 20px;
+        }
+
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        canvas {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            display: block;
+            width: 100%;
+        }
+
+        .info-panel {
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid var(--p-color);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: fit-content;
+        }
+
+        .core-principle {
+            background: #fff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .core-title {
+            font-weight: 800;
+            color: #1d4ed8;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .core-text {
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .term-box {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .term-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            display: block;
+            color: #0f172a;
+        }
+
+        .term-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .term-desc:last-child { margin-bottom: 0; }
+
+        .highlight-p { color: var(--p-color); font-weight: bold; }
+        .highlight-s { color: var(--s-color); font-weight: bold; }
+
+        .controls {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #475569;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 8px 0;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button.active[data-type="all"] { border-color: #475569; background: #475569; color: white; }
+        button.active[data-type="p"] { border-color: var(--p-color); background: var(--p-color); color: white; }
+        button.active[data-type="s"] { border-color: var(--s-color); background: var(--s-color); color: white; }
+
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>전자기학으로 증명하는 브루스터 법칙</h1>
+        <p class="desc">
+            빛이 매질에 입사하면 매질 내의 전자들을 진동시켜 <b>전기 쌍극자(Electric Dipole)</b>를 형성합니다.<br>
+            반사광은 이 쌍극자들이 뿜어내는(재방사하는) 전자기파입니다.
+        </p>
+    </header>
+
+    <div class="layout">
+        <!-- 왼쪽: 메인 광학 시뮬레이션 및 컨트롤 -->
+        <div class="left-col">
+            <canvas id="opticsCanvas" width="650" height="400"></canvas>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>입사각 (θ₁) 조절 <span id="valTheta">45.0°</span></label>
+                    <input type="range" id="inTheta" min="10" max="85" step="0.1" value="45.0">
+                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; text-align: right;">
+                        목표: 브루스터 각 (θ_B ≈ 56.3°)에 맞추어 <span class="highlight-p">p-편광</span>의 소멸을 확인하세요.
+                    </div>
+                </div>
+                <div class="control-group" style="margin-top: 5px;">
+                    <label>표시할 편광 성분</label>
+                    <div class="btn-group">
+                        <button class="pol-btn active" data-type="all">무편광 (둘 다)</button>
+                        <button class="pol-btn" data-type="p">p-편광만</button>
+                        <button class="pol-btn" data-type="s">s-편광만</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 이론 설명 패널 -->
+        <div class="info-panel">
+            <div style="text-align: center;">
+                <span style="font-size: 0.9rem; font-weight: bold; color: #475569;">[참고] 전기 쌍극자의 방사 패턴</span>
+                <canvas id="dipoleCanvas" width="250" height="170" style="margin-top: 8px; height: 160px;"></canvas>
+            </div>
+            
+            <div class="core-principle">
+                <span class="core-title">💡 핵심 물리 원리</span>
+                <div class="core-text">
+                    <b>"진동하는 쌍극자는 자신의 진동축 방향으로는 전자기파(에너지)를 전혀 방사하지 않는다."</b><br><br>
+                    쌍극자는 진동축의 <b>수직 방향</b>으로 가장 강한 빛을 보내며, 축 방향으로는 빛을 내보내지 못하는 기하학적 방사 한계를 가집니다.
+                </div>
+            </div>
+
+            <div class="term-box">
+                <span class="core-title" style="margin-bottom: 10px; color: #0f172a;">🔍 편광 및 기하학적 정의</span>
+                
+                <span class="term-title">1. 입사면 (Plane of Incidence)</span>
+                <div class="term-desc">
+                    입사 광선의 진행 방향 벡터($\vec{k}$)와 매질 경계면의 법선 벡터($\hat{n}$)가 이루는 2차원 평면입니다. <b>현재 모니터 화면(xy 평면)이 바로 입사면입니다.</b>
+                </div>
+                
+                <span class="term-title">2. <span class="highlight-p">p-편광 (p-polarization)</span></span>
+                <div class="term-desc">
+                    전기장($\vec{E}$)이 입사면에 <b>평행(parallel)</b>하게 진동합니다. 화면에 누운 상태로, 진행 방향과 수직으로 진동하는 파란색 양방향 화살표입니다.
+                </div>
+
+                <span class="term-title">3. <span class="highlight-s">s-편광 (s-polarization)</span></span>
+                <div class="term-desc">
+                    전기장($\vec{E}$)이 입사면에 <b>수직(senkrecht)</b>으로 진동합니다. 모니터 화면을 수직으로 뚫고 나오는 방향으로 진동하는 빨간색 원(점) 표식입니다.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 캔버스 및 DOM 요소 초기화 ---
+    const canvas = document.getElementById('opticsCanvas');
+    const ctx = canvas.getContext('2d');
+    const dipCanvas = document.getElementById('dipoleCanvas');
+    const dipCtx = dipCanvas.getContext('2d');
+    
+    const inTheta = document.getElementById('inTheta');
+    const valTheta = document.getElementById('valTheta');
+    const btns = document.querySelectorAll('.pol-btn');
+
+    let theta1_deg = 45.0;
+    let showPol = 'all'; // 'all', 'p', 's'
+    
+    const n1 = 1.0; // 공기
+    const n2 = 1.5; // 유리 (브루스터 각 약 56.3도)
+
+    // 이벤트 리스너
+    inTheta.addEventListener('input', () => {
+        theta1_deg = parseFloat(inTheta.value);
+        valTheta.textContent = `${theta1_deg.toFixed(1)}°`;
+        drawAll();
+    });
+
+    btns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            btns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            showPol = e.target.getAttribute('data-type');
+            drawAll();
+        });
+    });
+
+    // --- 1. 쌍극자 방사 패턴 캔버스 그리기 ---
+    function drawDipolePattern() {
+        dipCtx.clearRect(0, 0, dipCanvas.width, dipCanvas.height);
+        const cx = dipCanvas.width / 2;
+        const cy = dipCanvas.height / 2;
+
+        // 진동하는 쌍극자 (y축 방향)
+        dipCtx.strokeStyle = "#2563eb";
+        dipCtx.lineWidth = 3;
+        dipCtx.beginPath();
+        dipCtx.moveTo(cx, cy - 25);
+        dipCtx.lineTo(cx, cy + 25);
+        dipCtx.stroke();
+        
+        // 화살촉
+        dipCtx.fillStyle = "#2563eb";
+        dipCtx.beginPath(); dipCtx.moveTo(cx, cy - 30); dipCtx.lineTo(cx - 5, cy - 20); dipCtx.lineTo(cx + 5, cy - 20); dipCtx.fill();
+        dipCtx.beginPath(); dipCtx.moveTo(cx, cy + 30); dipCtx.lineTo(cx - 5, cy + 20); dipCtx.lineTo(cx + 5, cy + 20); dipCtx.fill();
+
+        dipCtx.font = "bold 12px sans-serif";
+        dipCtx.textAlign = "left";
+        dipCtx.fillText("쌍극자 진동축", cx + 10, cy - 15);
+
+        // 방사 패턴 (Figure-8: r = R * |sin(theta)|)
+        const R = 60;
+        dipCtx.strokeStyle = "rgba(220, 38, 38, 0.6)";
+        dipCtx.fillStyle = "rgba(220, 38, 38, 0.1)";
+        dipCtx.lineWidth = 2;
+        dipCtx.beginPath();
+        for(let a = 0; a <= Math.PI * 2; a += 0.05) {
+            const r = R * Math.abs(Math.sin(a)); 
+            const x = cx + r * Math.sin(a);
+            const y = cy - r * Math.cos(a);
+            if(a === 0) dipCtx.moveTo(x, y);
+            else dipCtx.lineTo(x, y);
+        }
+        dipCtx.closePath();
+        dipCtx.fill();
+        dipCtx.stroke();
+
+        // 방사 강도 표시선
+        dipCtx.strokeStyle = "#dc2626";
+        dipCtx.setLineDash([3,3]);
+        dipCtx.beginPath(); dipCtx.moveTo(cx - R, cy); dipCtx.lineTo(cx + R, cy); dipCtx.stroke();
+        dipCtx.setLineDash([]);
+        
+        dipCtx.fillStyle = "#dc2626";
+        dipCtx.textAlign = "center";
+        dipCtx.font = "11px sans-serif";
+        dipCtx.fillText("최대 방사", cx + R + 10, cy + 4);
+        
+        dipCtx.fillStyle = "#64748b";
+        dipCtx.fillText("방사 없음 (0)", cx, cy - 35);
+        dipCtx.fillText("방사 없음 (0)", cx, cy + 42);
+    }
+
+    // --- 2. 메인 광학 시뮬레이션 그리기 ---
+    function drawP_Pol(x, y, angle, amplitude) {
+        if (amplitude < 0.01) return;
+        const size = 15 * amplitude;
+        const E_angle = angle + Math.PI / 2; // 진행방향에 수직
+        
+        ctx.strokeStyle = "#2563eb"; ctx.fillStyle = "#2563eb"; ctx.lineWidth = 2;
+        const dx = size * Math.cos(E_angle); const dy = size * Math.sin(E_angle);
+
+        ctx.beginPath(); ctx.moveTo(x - dx, y - dy); ctx.lineTo(x + dx, y + dy); ctx.stroke();
+        const drawHead = (hx, hy, a) => {
+            ctx.beginPath(); ctx.moveTo(hx, hy);
+            ctx.lineTo(hx - 5*Math.cos(a - Math.PI/6), hy - 5*Math.sin(a - Math.PI/6));
+            ctx.lineTo(hx - 5*Math.cos(a + Math.PI/6), hy - 5*Math.sin(a + Math.PI/6));
+            ctx.fill();
+        };
+        drawHead(x + dx, y + dy, E_angle);
+        drawHead(x - dx, y - dy, E_angle + Math.PI);
+    }
+
+    function drawS_Pol(x, y, amplitude) {
+        if (amplitude < 0.01) return;
+        const size = 6 * amplitude;
+        ctx.strokeStyle = "#dc2626"; ctx.fillStyle = "#ffffff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(size, 2), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#dc2626";
+        ctx.beginPath(); ctx.arc(x, y, Math.max(size * 0.3, 1), 0, Math.PI * 2); ctx.fill();
+    }
+
+    function drawOptics() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        // 매질 배경
+        ctx.fillStyle = "rgba(224, 242, 254, 0.4)";
+        ctx.fillRect(0, cy, canvas.width, canvas.height / 2);
+        
+        ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
+
+        ctx.fillStyle = "#64748b"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`공기 (n₁ = ${n1.toFixed(1)})`, 20, cy - 10);
+        ctx.fillText(`유리 (n₂ = ${n2.toFixed(1)})`, 20, cy + 25);
+
+        // 법선
+        ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.moveTo(cx, 30); ctx.lineTo(cx, canvas.height - 30); ctx.stroke(); ctx.setLineDash([]);
+
+        // 물리 계산
+        const theta1 = theta1_deg * Math.PI / 180;
+        let sin_theta2 = (n1 / n2) * Math.sin(theta1);
+        let theta2 = Math.asin(sin_theta2);
+
+        // 프레넬 반사 계수
+        const rs = (n1 * Math.cos(theta1) - n2 * Math.cos(theta2)) / (n1 * Math.cos(theta1) + n2 * Math.cos(theta2));
+        const rp = (n1 * Math.cos(theta2) - n2 * Math.cos(theta1)) / (n1 * Math.cos(theta2) + n2 * Math.cos(theta1));
+        const ts_vis = 1 - Math.abs(rs); 
+        const tp_vis = 1 - Math.abs(rp);
+
+        // 광선 궤적
+        const rayLen = 220;
+        const inAngle = Math.PI / 2 - theta1; 
+        const inX = cx - rayLen * Math.cos(inAngle); const inY = cy - rayLen * Math.sin(inAngle);
+        
+        const refAngle = Math.PI / 2 + theta1; 
+        const refX = cx + rayLen * Math.cos(Math.PI/2 - theta1); const refY = cy - rayLen * Math.sin(Math.PI/2 - theta1);
+        
+        const transAngle = Math.PI / 2 - theta2;
+        const transX = cx + rayLen * Math.cos(Math.PI/2 - theta2); const transY = cy + rayLen * Math.sin(Math.PI/2 - theta2);
+
+        // 빛의 선 그리기
+        const drawLine = (x1, y1, x2, y2) => { ctx.strokeStyle="#1e293b"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+        drawLine(inX, inY, cx, cy); drawLine(cx, cy, refX, refY); drawLine(cx, cy, transX, transY);
+
+        // --- 편광 벡터 그리기 ---
+        const drawPols = (startX, startY, endX, endY, angle, amp_p, amp_s) => {
+            const dx = (endX - startX) / 5; const dy = (endY - startY) / 5;
+            for (let i = 1; i <= 4; i++) {
+                if (showPol === 'all' || showPol === 's') {
+                    const offset = (showPol === 'all') ? 4 : 0;
+                    drawS_Pol(startX + dx*i + offset*Math.cos(angle+Math.PI/2), startY + dy*i + offset*Math.sin(angle+Math.PI/2), Math.abs(amp_s));
+                }
+                if (showPol === 'all' || showPol === 'p') {
+                    drawP_Pol(startX + dx*i, startY + dy*i, angle, Math.abs(amp_p));
+                }
+            }
+        };
+
+        const vecInAngle = Math.atan2(cy - inY, cx - inX);
+        const vecRefAngle = Math.atan2(refY - cy, refX - cx);
+        const vecTransAngle = Math.atan2(transY - cy, transX - cx);
+
+        drawPols(inX, inY, cx, cy, vecInAngle, 1.0, 1.0);
+        drawPols(cx, cy, refX, refY, vecRefAngle, Math.abs(rp), Math.abs(rs));
+        drawPols(cx, cy, transX, transY, vecTransAngle, tp_vis, ts_vis);
+
+        // --- 핵심 시각화: 굴절광의 p-편광 진동축 연장선 ---
+        const dipoleAxisAngle = vecTransAngle + Math.PI/2; 
+        
+        if (showPol === 'all' || showPol === 'p') {
+            ctx.strokeStyle = "#2563eb";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + 250 * Math.cos(dipoleAxisAngle + Math.PI), cy + 250 * Math.sin(dipoleAxisAngle + Math.PI));
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = "#2563eb";
+            ctx.font = "bold 12px sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("매질 내 쌍극자(p-편광)의 진동축 연장선", cx - 250, cy + 130);
+        }
+
+        // --- 반사광과 굴절광 사이 각도 표시 ---
+        const totalAngle = (180 - theta1_deg - (theta2 * 180 / Math.PI));
+        ctx.strokeStyle = "#d97706"; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 40, -Math.PI/2 + theta1, Math.PI/2 - theta2, false);
+        ctx.stroke();
+        
+        ctx.fillStyle = "#d97706";
+        ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(`반사-굴절 각도: ${totalAngle.toFixed(1)}°`, cx + 50, cy);
+
+        // 브루스터 각 도달 시 시각 효과
+        if (Math.abs(rp) < 0.05) {
+            ctx.fillStyle = "#dc2626";
+            ctx.font = "bold 16px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("🔥 브루스터 각 도달! (반사광과 굴절광이 90° 직교)", cx, 40);
+            
+            ctx.fillStyle = "#1e40af";
+            ctx.font = "14px sans-serif";
+            if (showPol === 'all' || showPol === 'p') {
+                ctx.fillText("쌍극자의 진동축이 정확히 반사광의 경로를 가리키므로, 이 방향으론 p-편광이 방사되지 못합니다.", cx, 65);
+            }
+            
+            // 직각 표시기 (90도)
+            ctx.strokeStyle = "#dc2626";
+            ctx.beginPath();
+            const sqLen = 15;
+            const a1 = -Math.PI/2 + theta1; 
+            const a2 = Math.PI/2 - theta2;  
+            const px1 = cx + sqLen * Math.cos(a1); const py1 = cy + sqLen * Math.sin(a1);
+            const px2 = px1 + sqLen * Math.cos(a2); const py2 = py1 + sqLen * Math.sin(a2);
+            const px3 = cx + sqLen * Math.cos(a2); const py3 = cy + sqLen * Math.sin(a2);
+            ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.lineTo(px3, py3);
+            ctx.stroke();
+        }
+    }
+
+    function drawAll() {
+        drawDipolePattern();
+        drawOptics();
+    }
+
+    // 초기 실행
+    document.fonts.ready.then(() => {
+        drawAll();
+    });
+</script>
+
+</body>
+</html>
