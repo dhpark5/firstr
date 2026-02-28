@@ -1,38 +1,49 @@
 import streamlit as st
 
+# 1. 페이지 기본 설정 (최상단)
 st.set_page_config(page_title="DIY물리실험", layout="wide", initial_sidebar_state="collapsed")
-# 1. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
-# st.Page("파일경로", title="메뉴에 보일 이름", icon="아이콘")
-# 역학
+
+# --- 2. 홈 화면(소개글)을 그리는 함수 정의 ---
+def intro_page():
+    st.title("🔬 DIY 물리실험 플랫폼")
+    st.markdown("""
+    환영합니다! 이 웹사이트는 복잡한 물리학 개념을 직접 조작하고 눈으로 확인할 수 있도록 제작된 **인터랙티브 시뮬레이션 공간**입니다.
+    
+    왼쪽 상단의 **`>`** 버튼(사이드바)을 눌러 메뉴를 열고, 원하는 실험을 선택해 보세요.
+    
+    ### 📚 제공되는 실험 카테고리
+    * **전자기학:** 복잡한 회로망을 단순화하는 테브난의 정리와 교류 회로 분석
+    * **광학:** 빛의 굴절, 반사, 편광(브루스터 법칙) 및 볼록렌즈 광선 추적 시뮬레이션
+    * **기타:** 물리학적 상상력을 더해줄 SF 소설 추천 등
+    """)
+    
+    st.info("👈 화면 왼쪽 위의 화살표를 눌러 시뮬레이션을 시작하세요!")
+
+# 3. 사이드바 메뉴에 들어갈 개별 페이지들을 정의합니다.
+# 위에서 만든 intro_page 함수를 첫 화면(default=True)으로 지정합니다.
+page_home = st.Page(intro_page, title="홈 화면", icon="🏠", default=True)
 
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
 page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="▪️")
 page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
 
-
 # 광학
 page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="▪️")
 page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈 시뮬레이션", icon="▪️")
-# page_circuit = st.Page("pages/교류회로.py", title="교류회로 실험", icon="▪️")
 
 # SF
 page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪️")
 
-# 2. 카테고리(폴더) 구조로 페이지들을 묶어줍니다 (딕셔너리 형태).
-# 왼쪽 메뉴에 굵은 글씨로 카테고리 제목이 생성되고, 그 아래에 페이지들이 배치됩니다.
+# 4. 카테고리(폴더) 구조로 페이지들을 묶어줍니다.
 nav_structure = {
+    "메인": [page_home],  # 소개 페이지 카테고리
     "🔹역학": [],
     "🔹전자기학": [page_Thevenin1, page_Thevenin2, page_RLC], 
     "🔹광학": [page_lens, page_brewster],
     "🔹SF": [page_sf],
 }
 
-# 3. 네비게이션 객체를 생성하고 실행합니다.
+# 5. 네비게이션 객체를 생성하고 실행합니다.
 pg = st.navigation(nav_structure)
-
-# (선택) 모든 페이지에 공통으로 적용될 상단 설정이 필요하다면 여기에 작성합니다.
-st.set_page_config(page_title="통합 시뮬레이션 플랫폼", layout="wide")
-
-# 선택된 페이지 렌더링
 pg.run()
