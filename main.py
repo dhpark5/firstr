@@ -42,14 +42,12 @@ with st.sidebar:
     st.page_link(page_home)
     
     # 외부 링크 (유튜브 채널) 추가
-    st.page_link("https://www.youtube.com/@dhpark5", label="DIY물리실험 유튜브", icon="📺")
-    
+    st.page_link("https://www.youtube.com/@dhpark5", label="DIY물리실험 유튜브", icon="📺")    
     # 메뉴 구분을 위한 얇은 가로선 추가
     st.divider()
     
     # expanded=False 파라미터를 통해 처음 접속 시 메뉴가 닫혀 있도록 설정합니다.
     #with st.expander("역학", expanded=False):
-
     with st.expander("전자기학", expanded=False):
         st.page_link(page_Thevenin1)
         st.page_link(page_Thevenin2)
