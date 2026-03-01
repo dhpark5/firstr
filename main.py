@@ -37,7 +37,7 @@ page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪
 
 # 4. 기본 네비게이션 숨기기
 # 모든 페이지를 리스트로 묶고, position="hidden"을 사용하여 스트림릿의 기본 메뉴를 안 보이게 지웁니다.
-all_pages = [page_home, page_moment, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_brewster, page_snell, page_diffractionspikes, page_sf]
+all_pages = [page_home, page_moment, page_Thevenin1, page_Thevenin2, page_RLC, page_lens, page_CCD, page_brewster, page_snell, page_diffractionspikes, page_sf]
 pg = st.navigation(all_pages, position="hidden")
 
 # 5. 커스텀 사이드바 직접 만들기 (접이식 카테고리 구현)
