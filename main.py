@@ -21,14 +21,14 @@ page_home = st.Page(intro_page, title="DIY물리실험", icon="🏠", default=Tr
 page_moment = st.Page("pages/mechanics/mech_moment.py", title="운동량 보존 법칙", icon="▪️")
 
 # 전자기학
-page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
-page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="▪️")
+page_Thevenin1 = st.Page("pages/em/Thevenin1.py", title="테브난 정리 기본", icon="▪️")
+page_Thevenin2 = st.Page("pages/em/Thevenin2.py", title="테브난 정리 심화", icon="▪️")
 page_RLC = st.Page("pages/em/교류회로.py", title="교류회로", icon="▪️")
 
 # 광학
 page_lens = st.Page("pages/optics/lens.py", title="볼록렌즈에 의한 상", icon="▪️")
 page_brewster = st.Page("pages/optics/Brewster.py", title="브루스터 법칙", icon="▪️")
-page_snell = st.Page("pages/optics_snell.py", title="굴절 법칙", icon="▪️")
+page_snell = st.Page("pages/optics/optics_snell.py", title="굴절 법칙", icon="▪️")
 page_diffractionspikes = st.Page("pages/optics/optics_diffractionspikes.py", title="우주망원경의 회절 스파이크", icon="▪️")
 
 # SF
