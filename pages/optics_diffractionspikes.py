@@ -6,6 +6,7 @@ import base64
 st.set_page_config(page_title="회절 스파이크 현상", layout="wide")
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
+# 수정 1: 폴더에 있는 실제 HTML 파일명과 정확히 일치시킵니다.
 html_file_path = os.path.join(current_dir, "optics_diffractionspikes.html")
 
 # 이미지 파일을 읽어서 Base64 문자열로 변환하는 함수
@@ -19,19 +20,20 @@ try:
     with open(html_file_path, "r", encoding="utf-8") as f:
         html_data = f.read()
 
-    # 2. 각 이미지 파일의 절대 경로 설정
+    # 2. 각 이미지 파일의 절대 경로 설정 (수정하신 파일명 적용)
     img1_path = os.path.join(current_dir, "optics_diffraction_creation.png")
     img2_path = os.path.join(current_dir, "optics_diffraction_hubble.png")
     img3_path = os.path.join(current_dir, "optics_diffraction_webb.png")
 
     # 3. 파일이 존재하면 HTML 안의 파일명을 Base64 데이터로 치환
+    # 수정 2: 파일 확장자가 모두 .png이므로 image/png 로 통일합니다.
     if os.path.exists(img1_path):
         b64_img1 = get_base64_of_bin_file(img1_path)
-        html_data = html_data.replace('src="optics_diffraction_creation.png"', f'src="data:image/jpeg;base64,{b64_img1}"')
+        html_data = html_data.replace('src="optics_diffraction_creation.png"', f'src="data:image/png;base64,{b64_img1}"')
         
     if os.path.exists(img2_path):
         b64_img2 = get_base64_of_bin_file(img2_path)
-        html_data = html_data.replace('src="optics_diffraction_hubble.png"', f'src="data:image/jpeg;base64,{b64_img2}"')
+        html_data = html_data.replace('src="optics_diffraction_hubble.png"', f'src="data:image/png;base64,{b64_img2}"')
         
     if os.path.exists(img3_path):
         b64_img3 = get_base64_of_bin_file(img3_path)
