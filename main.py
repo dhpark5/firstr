@@ -27,7 +27,7 @@ page_RLC = st.Page("pages/em/교류회로.py", title="교류회로", icon="▪�
 
 # 광학
 page_lens = st.Page("pages/optics/lens.py", title="볼록렌즈에 의한 상", icon="▪️")
-page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="▪️")
+page_brewster = st.Page("pages/optics/Brewster.py", title="브루스터 법칙", icon="▪️")
 page_snell = st.Page("pages/optics_snell.py", title="굴절 법칙", icon="▪️")
 page_diffractionspikes = st.Page("pages/optics_diffractionspikes.py", title="우주망원경의 회절 스파이크", icon="▪️")
 
