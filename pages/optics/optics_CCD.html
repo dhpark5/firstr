@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3X3 CCD 전하 전송 메커니즘</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-main: #334155;
+            --border-color: #e2e8f0;
+            --elec-on: #dc2626; /* 전압 인가(+V) */
+            --elec-off: #64748b; /* 전압 미인가(0V) */
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.6rem; color: #0f172a; margin: 0 0 8px 0; }
+        .desc { font-size: 0.95rem; color: #64748b; margin: 0; }
+
+        .view-section {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            background: #fdfdfd;
+        }
+
+        .view-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        /* 컨트롤 패널 */
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .btn-secondary { background: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background: #cbd5e1; }
+
+        /* 설명 패널 */
+        .explanation-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 6px;
+            min-height: 70px;
+        }
+        .step-title { font-weight: bold; color: #1e40af; margin-bottom: 8px; font-size: 1.05rem; }
+        .step-desc { font-size: 0.95rem; line-height: 1.5; margin: 0; color: #334155; }
+
+        /* 출력 데이터 패널 */
+        .output-panel {
+            margin-top: 15px;
+            padding: 16px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .output-panel h3 { margin: 0 0 10px 0; font-size: 1.05rem; color: #0f172a; }
+        .data-array { 
+            display: flex; 
+            gap: 8px; 
+            flex-wrap: wrap; 
+            min-height: 40px; 
+        }
+        .data-cell {
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            background: white; border: 1px solid var(--border-color); border-radius: 6px; font-weight: bold; color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>3X3 CCD 전하 전송 동기화 시뮬레이션</h1>
+        <p class="desc">화소 내부의 3상 전극(E1, E2, E3) 전압 제어가 픽셀 간의 전하 이동을 만들어냅니다.</p>
+    </header>
+
+    <div class="view-section">
+        <div class="view-title">🔍 거시적 관점: 3X3 화소 배열 전체 전송 흐름</div>
+        <canvas id="macroCanvas" width="850" height="420"></canvas>
+    </div>
+
+    <div class="view-section">
+        <div class="view-title">🔬 미시적 관점: 빨간 점선 확대 영역의 단면도 (2개 화소 전체 구조)</div>
+        <canvas id="microCanvas" width="850" height="230"></canvas>
+    </div>
+    
+    <div class="controls">
+        <button id="btnInit" class="btn-secondary">초기화</button>
+        <button id="btnExpose" class="btn-primary">1. 빛 비추기 (전하 생성)</button>
+        <button id="btnNext" class="btn-primary" disabled>전하 1칸 이동 (Clock Cycle)</button>
+    </div>
+
+    <div class="explanation-box">
+        <div class="step-title" id="stepTitle">대기 상태</div>
+        <p class="step-desc" id="stepDesc">'빛 비추기' 버튼을 눌러 각 화소에 입사광에 의한 전하(전자)를 생성하십시오.</p>
+    </div>
+
+    <div class="output-panel">
+        <h3>출력된 직렬 디지털 신호 (증폭기 판독 결과)</h3>
+        <div class="data-array" id="outputData"></div>
+    </div>
+</div>
+
+<script>
+    // --- 공통 상태 변수 ---
+    let stepCount = 0;
+    let isAnimating = false;
+    let animProgress = 0; 
+    let animStartTime = 0;
+    const ANIM_DURATION = 2000; // 이동 과정을 자세히 보기 위해 2초
+
+    let outputValues = [];
+    let charges = [];
+    
+    // 미시적 뷰 동기화용 하이라이트 위치 및 전하 객체 변수
+    let hlStart = null; 
+    let hlEnd = null;
+    let microChargeEntering = null;
+    let microChargeP1 = null;
+    let microChargeP2 = null;
+
+    // --- 거시적 관점(Macro) 캔버스 ---
+    const macCanvas = document.getElementById('macroCanvas');
+    const macCtx = macCanvas.getContext('2d');
+    
+    const CELL_SIZE = 65;
+    const SPACING = 10;
+    const START_X = 180;
+    const START_Y = 25;
+    
+    // 3x3 화소, 수평 레지스터, 증폭기, 판독(소멸) 위치의 절대 좌표
+    const POS = {
+        P11: {x: START_X, y: START_Y},
+        P12: {x: START_X + CELL_SIZE + SPACING, y: START_Y},
+        P13: {x: START_X + 2*(CELL_SIZE + SPACING), y: START_Y},
+        P21: {x: START_X, y: START_Y + CELL_SIZE + SPACING},
+        P22: {x: START_X + CELL_SIZE + SPACING, y: START_Y + CELL_SIZE + SPACING},
+        P23: {x: START_X + 2*(CELL_SIZE + SPACING), y: START_Y + CELL_SIZE + SPACING},
+        P31: {x: START_X, y: START_Y + 2*(CELL_SIZE + SPACING)},
+        P32: {x: START_X + CELL_SIZE + SPACING, y: START_Y + 2*(CELL_SIZE + SPACING)},
+        P33: {x: START_X + 2*(CELL_SIZE + SPACING), y: START_Y + 2*(CELL_SIZE + SPACING)},
+        H1:  {x: START_X, y: START_Y + 3*(CELL_SIZE + SPACING) + 20},
+        H2:  {x: START_X + CELL_SIZE + SPACING, y: START_Y + 3*(CELL_SIZE + SPACING) + 20},
+        H3:  {x: START_X + 2*(CELL_SIZE + SPACING), y: START_Y + 3*(CELL_SIZE + SPACING) + 20},
+        AMP: {x: START_X + 3*(CELL_SIZE + SPACING), y: START_Y + 3*(CELL_SIZE + SPACING) + 20},
+        READ:{x: START_X + 4*(CELL_SIZE + SPACING), y: START_Y + 3*(CELL_SIZE + SPACING) + 20}
+    };
+
+    // --- 미시적 관점(Micro) 캔버스 ---
+    const micCanvas = document.getElementById('microCanvas');
+    const micCtx = micCanvas.getContext('2d');
+
+    const btnInit = document.getElementById('btnInit');
+    const btnExpose = document.getElementById('btnExpose');
+    const btnNext = document.getElementById('btnNext');
+    const stepTitle = document.getElementById('stepTitle');
+    const stepDesc = document.getElementById('stepDesc');
+    const outputData = document.getElementById('outputData');
+
+    function getChargeColor(value, alpha=1) {
+        const a = 0.4 + (value / 100) * 0.6;
+        return `rgba(37, 99, 235, ${a * alpha})`;
+    }
+
+    // 거시적 화면의 빨간색 하이라이트 박스 그리기
+    function drawHighlightBox(startKey, endKey) {
+        if (!POS[startKey] || !POS[endKey] || endKey === 'READ') return;
+        const p1 = POS[startKey];
+        const p2 = POS[endKey];
+        const minX = Math.min(p1.x, p2.x) - 5;
+        const minY = Math.min(p1.y, p2.y) - 5;
+        const maxX = Math.max(p1.x, p2.x) + CELL_SIZE + 5;
+        const maxY = Math.max(p1.y, p2.y) + CELL_SIZE + 5;
+        
+        macCtx.strokeStyle = "rgba(220, 38, 38, 0.9)";
+        macCtx.setLineDash([6, 6]);
+        macCtx.lineWidth = 2.5;
+        macCtx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        macCtx.setLineDash([]);
+        
+        macCtx.fillStyle = "rgba(220, 38, 38, 0.9)";
+        macCtx.font = "bold 12px sans-serif";
+        macCtx.fillText("🔴 아래 미시적 뷰 영역 (2개 화소)", minX + (maxX - minX)/2, maxY + 15);
+    }
+
+    // ==========================================
+    // 그리기: 거시적 관점 (Macro)
+    // ==========================================
+    function drawMacro() {
+        macCtx.clearRect(0, 0, macCanvas.width, macCanvas.height);
+        macCtx.textAlign = 'center'; macCtx.textBaseline = 'middle';
+
+        // 1. 픽셀 및 레지스터 그리기 (내부 3상 전극선 포함)
+        const drawCell = (key, label, isHReg=false) => {
+            const p = POS[key];
+            macCtx.fillStyle = isHReg ? '#e2e8f0' : '#f1f5f9';
+            macCtx.strokeStyle = isHReg ? '#94a3b8' : '#cbd5e1';
+            macCtx.lineWidth = 2;
+            macCtx.fillRect(p.x, p.y, CELL_SIZE, CELL_SIZE);
+            macCtx.strokeRect(p.x, p.y, CELL_SIZE, CELL_SIZE);
+            
+            macCtx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+            macCtx.lineWidth = 1;
+            macCtx.beginPath();
+            macCtx.fillStyle = 'rgba(100, 116, 139, 0.8)';
+            macCtx.font = 'bold 10px sans-serif';
+            
+            if (isHReg) {
+                const step = CELL_SIZE / 3;
+                macCtx.moveTo(p.x + step, p.y); macCtx.lineTo(p.x + step, p.y + CELL_SIZE);
+                macCtx.moveTo(p.x + step*2, p.y); macCtx.lineTo(p.x + step*2, p.y + CELL_SIZE);
+                macCtx.stroke();
+                macCtx.fillText('E1', p.x + step*0.5, p.y + 10);
+                macCtx.fillText('E2', p.x + step*1.5, p.y + 10);
+                macCtx.fillText('E3', p.x + step*2.5, p.y + 10);
+            } else {
+                const step = CELL_SIZE / 3;
+                macCtx.moveTo(p.x, p.y + step); macCtx.lineTo(p.x + CELL_SIZE, p.y + step);
+                macCtx.moveTo(p.x, p.y + step*2); macCtx.lineTo(p.x + CELL_SIZE, p.y + step*2);
+                macCtx.stroke();
+                macCtx.fillText('E1', p.x + 10, p.y + step*0.5 + 2);
+                macCtx.fillText('E2', p.x + 10, p.y + step*1.5 + 2);
+                macCtx.fillText('E3', p.x + 10, p.y + step*2.5 + 2);
+            }
+
+            macCtx.fillStyle = '#1e293b';
+            macCtx.font = 'bold 12px sans-serif';
+            macCtx.fillText(label, p.x + CELL_SIZE/2, p.y + CELL_SIZE/2 + 15);
+        };
+
+        drawCell('P11', 'P11'); drawCell('P12', 'P12'); drawCell('P13', 'P13');
+        drawCell('P21', 'P21'); drawCell('P22', 'P22'); drawCell('P23', 'P23');
+        drawCell('P31', 'P31'); drawCell('P32', 'P32'); drawCell('P33', 'P33');
+        drawCell('H1', 'H1', true); drawCell('H2', 'H2', true); drawCell('H3', 'H3', true);
+
+        // 증폭기
+        const pA = POS.AMP;
+        macCtx.fillStyle = '#fef08a'; macCtx.strokeStyle = '#eab308';
+        macCtx.beginPath();
+        macCtx.moveTo(pA.x, pA.y); macCtx.lineTo(pA.x + CELL_SIZE, pA.y + CELL_SIZE/2);
+        macCtx.lineTo(pA.x, pA.y + CELL_SIZE); macCtx.closePath();
+        macCtx.fill(); macCtx.stroke();
+        macCtx.fillStyle = '#854d0e'; macCtx.font = 'bold 12px sans-serif';
+        macCtx.fillText("증폭기", pA.x + CELL_SIZE/3, pA.y + CELL_SIZE/2);
+
+        // 방향 가이드 텍스트
+        macCtx.fillStyle = '#94a3b8'; macCtx.font = '14px sans-serif';
+        macCtx.fillText("↓ 수직 전송 방향", 100, 150);
+        macCtx.fillText("수평 전송 방향 →", 300, 360);
+
+        // 하이라이트 박스 (동기화)
+        if (hlStart && hlEnd) {
+            drawHighlightBox(hlStart, hlEnd);
+        }
+
+        // 2. 전하 그리기
+        charges.forEach(c => {
+            if (c.currPosKey === 'READ' && !isAnimating) return; 
+            
+            let cx, cy, alpha = 1.0;
+            if (isAnimating && c.nextPosKey && c.nextPosKey !== c.currPosKey) {
+                const start = POS[c.currPosKey];
+                const end = POS[c.nextPosKey];
+                const ease = animProgress < 0.5 ? 2 * animProgress * animProgress : 1 - Math.pow(-2 * animProgress + 2, 2) / 2;
+                cx = start.x + (end.x - start.x) * ease + CELL_SIZE/2;
+                cy = start.y + (end.y - start.y) * ease + CELL_SIZE/2 - 5;
+                
+                if (c.nextPosKey === 'READ') alpha = 1 - ease;
+            } else {
+                cx = POS[c.currPosKey].x + CELL_SIZE/2;
+                cy = POS[c.currPosKey].y + CELL_SIZE/2 - 5; 
+                if (c.currPosKey === 'READ') alpha = 0;
+            }
+
+            if (alpha > 0) {
+                macCtx.globalAlpha = alpha;
+                macCtx.fillStyle = getChargeColor(c.val);
+                macCtx.beginPath(); macCtx.arc(cx, cy, 18, 0, Math.PI * 2); macCtx.fill();
+                macCtx.fillStyle = '#ffffff'; macCtx.font = 'bold 14px sans-serif';
+                macCtx.fillText(c.id, cx, cy);
+                macCtx.globalAlpha = 1.0;
+            }
+        });
+    }
+
+    // ==========================================
+    // 그리기: 미시적 관점 (Micro) - 6개 전극 (화소 2개)
+    // ==========================================
+    function getEx(i) {
+        return 90 + i * 110; 
+    }
+
+    function getArea(s, p) {
+        const ew = 100;
+        if (p < 0.16) return [getEx(s), getEx(s) + ew];
+        if (p < 0.33) return [getEx(s), getEx(s+1) + ew];
+        if (p < 0.50) return [getEx(s+1), getEx(s+1) + ew];
+        if (p < 0.66) return [getEx(s+1), getEx(s+2) + ew];
+        if (p < 0.83) return [getEx(s+2), getEx(s+2) + ew];
+        return [getEx(s+2), getEx(s+3) + ew];
+    }
+
+    function drawMicro() {
+        micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+        
+        // 반도체 구조물 (픽셀 2개를 포함하는 넓은 채널)
+        micCtx.fillStyle = "#94a3b8"; micCtx.fillRect(20, 140, 810, 40); 
+        micCtx.fillStyle = "#fcd34d"; micCtx.fillRect(20, 90, 810, 50);  
+        micCtx.fillStyle = "#5eead4"; micCtx.fillRect(20, 70, 810, 20);  
+
+        micCtx.fillStyle = "#ffffff"; micCtx.font = "12px sans-serif";
+        micCtx.textAlign = "left";
+        micCtx.fillText("n형 반도체", 30, 120);
+
+        // 3상 클럭 매핑 (진행률 p에 따른 전압 변화 - 6개 전극)
+        const p = isAnimating ? animProgress : 0;
+        let vState = [1,0,0, 1,0,0]; // 화소 1(E1,E2,E3), 화소 2(E1,E2,E3)
+
+        if (p < 0.16) vState = [1,0,0, 1,0,0];
+        else if (p < 0.33) vState = [1,1,0, 1,1,0];
+        else if (p < 0.50) vState = [0,1,0, 0,1,0];
+        else if (p < 0.66) vState = [0,1,1, 0,1,1];
+        else if (p < 0.83) vState = [0,0,1, 0,0,1];
+        else vState = [1,0,1, 1,0,1]; // 전자가 다음 화소의 E1으로 넘어감
+        
+        if (!isAnimating && stepCount > 0) { 
+            vState = [1,0,0, 1,0,0]; 
+        } 
+
+        // 전극 그리기 (총 6개)
+        const ew = 100, eh = 25, ey = 45;
+        const labels = ["E1", "E2", "E3", "E1", "E2", "E3"];
+
+        for (let i = 0; i < 6; i++) {
+            const isV = vState[i] === 1;
+            micCtx.fillStyle = isV ? "#dc2626" : "#64748b";
+            micCtx.fillRect(getEx(i), ey, ew, eh);
+            
+            micCtx.strokeStyle = "#334155"; micCtx.lineWidth = 1.5;
+            micCtx.beginPath(); micCtx.moveTo(getEx(i)+ew/2, ey); micCtx.lineTo(getEx(i)+ew/2, ey-15); micCtx.stroke();
+            
+            micCtx.fillStyle = isV ? "#dc2626" : "#64748b";
+            micCtx.font = "bold 13px sans-serif";
+            micCtx.textAlign = "center";
+            micCtx.fillText(isV ? "+V 인가" : "0V", getEx(i)+ew/2, ey-20);
+            
+            micCtx.fillStyle = "#ffffff"; micCtx.font = "bold 12px sans-serif";
+            micCtx.fillText(labels[i], getEx(i)+ew/2, ey+17);
+        }
+
+        // 픽셀(화소) 단위 치수선 및 레이블 동기화 표시
+        const label1 = hlStart || "화소 1";
+        const label2 = hlEnd ? (hlEnd === 'READ' ? "출력단(소멸)" : hlEnd) : "화소 2";
+
+        // 화소 경계선 (x = 85, 415, 745)
+        micCtx.strokeStyle = "rgba(220, 38, 38, 0.7)";
+        micCtx.setLineDash([4, 4]);
+        micCtx.lineWidth = 2;
+        micCtx.beginPath();
+        micCtx.moveTo(85, 25); micCtx.lineTo(85, 190); 
+        micCtx.moveTo(415, 25); micCtx.lineTo(415, 190); 
+        micCtx.moveTo(745, 25); micCtx.lineTo(745, 190); 
+        micCtx.stroke();
+        micCtx.setLineDash([]);
+
+        micCtx.fillStyle = "#dc2626"; micCtx.font = "bold 14px sans-serif";
+        micCtx.textAlign = "center";
+        micCtx.fillText(`[ ${label1} ] 영역`, 250, 210);
+        micCtx.fillText(`[ ${label2} ] 영역`, 580, 210);
+
+        // 전자 그리기 함수 (전위 우물 위치에 맞게 렌더링)
+        function drawElectrons(area, charge) {
+            if (!charge) return;
+            const eCount = 12;
+            const step = (area[1] - area[0] - 20) / Math.max(1, eCount - 1);
+            
+            micCtx.fillStyle = getChargeColor(charge.val, 1.0);
+            micCtx.strokeStyle = "#1e3a8a";
+            micCtx.lineWidth = 1;
+
+            for(let i=0; i<eCount; i++) {
+                const x = area[0] + 10 + step * i;
+                // 반도체 채널 영역 내부에 있을 때만 렌더링
+                if (x > 20 && x < 830) {
+                    const y = 115 + (i%2 === 0 ? 5 : 15); 
+                    micCtx.beginPath(); micCtx.arc(x, y, 6, 0, Math.PI * 2);
+                    micCtx.fill(); micCtx.stroke();
+                    
+                    micCtx.fillStyle = "#ffffff";
+                    micCtx.font = "bold 10px sans-serif";
+                    micCtx.textAlign="center"; micCtx.textBaseline="middle";
+                    micCtx.fillText(charge.id, x, y);
+                    micCtx.fillStyle = getChargeColor(charge.val, 1.0);
+                }
+            }
+        }
+
+        // 동기화된 전하 이동 렌더링
+        if (stepCount > 0) {
+            // 외부에서 들어오는 전하, 화소1에서 출발하는 전하, 화소2에서 출발하는 전하를 모두 그림
+            if (microChargeEntering) drawElectrons(getArea(-3, p), microChargeEntering);
+            if (microChargeP1) drawElectrons(getArea(0, p), microChargeP1);
+            if (microChargeP2) drawElectrons(getArea(3, p), microChargeP2);
+        }
+    }
+
+    // ==========================================
+    // 상태 제어 및 애니메이션 로직
+    // ==========================================
+    function updateUI() {
+        outputData.innerHTML = '';
+        outputValues.forEach(val => {
+            const div = document.createElement('div');
+            div.className = 'data-cell'; div.textContent = val.id;
+            div.style.backgroundColor = getChargeColor(val.val, 1);
+            outputData.appendChild(div);
+        });
+    }
+
+    function resetSim() {
+        stepCount = 0; isAnimating = false; charges = []; outputValues = [];
+        hlStart = null; hlEnd = null;
+        microChargeEntering = null; microChargeP1 = null; microChargeP2 = null;
+        btnExpose.disabled = false; btnNext.disabled = true; btnNext.textContent = "전하 1칸 이동 (Clock Cycle)";
+        stepTitle.textContent = "대기 상태"; 
+        stepDesc.textContent = "'빛 비추기' 버튼을 눌러 입사광에 의한 전하(전자)를 생성하십시오.";
+        drawMacro(); drawMicro(); updateUI();
+    }
+
+    function expose() {
+        charges = [
+            { id: 'A', val: Math.floor(Math.random()*60)+40, currPosKey: 'P11', nextPosKey: 'P11' },
+            { id: 'B', val: Math.floor(Math.random()*60)+40, currPosKey: 'P12', nextPosKey: 'P12' },
+            { id: 'C', val: Math.floor(Math.random()*60)+40, currPosKey: 'P13', nextPosKey: 'P13' },
+            { id: 'D', val: Math.floor(Math.random()*60)+40, currPosKey: 'P21', nextPosKey: 'P21' },
+            { id: 'E', val: Math.floor(Math.random()*60)+40, currPosKey: 'P22', nextPosKey: 'P22' },
+            { id: 'F', val: Math.floor(Math.random()*60)+40, currPosKey: 'P23', nextPosKey: 'P23' },
+            { id: 'G', val: Math.floor(Math.random()*60)+40, currPosKey: 'P31', nextPosKey: 'P31' },
+            { id: 'H', val: Math.floor(Math.random()*60)+40, currPosKey: 'P32', nextPosKey: 'P32' },
+            { id: 'I', val: Math.floor(Math.random()*60)+40, currPosKey: 'P33', nextPosKey: 'P33' }
+        ];
+        stepCount = 1; btnExpose.disabled = true; btnNext.disabled = false;
+        
+        hlStart = 'P21'; hlEnd = 'P31'; // 기본 하이라이트 위치
+        microChargeP1 = charges.find(c => c.currPosKey === 'P21');
+        microChargeP2 = charges.find(c => c.currPosKey === 'P31');
+        
+        stepTitle.textContent = "1단계: 전하 축적 (광전 효과)"; 
+        stepDesc.innerHTML = "빛은 화소 전체 면적에 입사하여 광전자를 생성합니다.<br>하지만 노출(Exposure) 단계에서는 <b>E1 전극에만 +V 전압</b>을 인가하여 '전위 우물'을 형성합니다. 따라서 화소 내 어디서 생성된 전자든 전기장에 의해 즉시 E1 아래로 끌려가 모이게 됩니다.";
+        drawMacro(); drawMicro();
+    }
+
+    function setNextTargets() {
+        let hHasCharge = charges.some(c => (c.currPosKey.startsWith('H') || c.currPosKey === 'AMP') && c.currPosKey !== 'READ');
+        let pHasCharge = charges.some(c => c.currPosKey.startsWith('P'));
+
+        let isVShift = false;
+
+        if (hHasCharge) {
+            charges.forEach(c => {
+                if (c.currPosKey === 'H1') c.nextPosKey = 'H2';
+                if (c.currPosKey === 'H2') c.nextPosKey = 'H3';
+                if (c.currPosKey === 'H3') c.nextPosKey = 'AMP';
+                if (c.currPosKey === 'AMP') c.nextPosKey = 'READ';
+            });
+            isVShift = false;
+        } else if (pHasCharge) {
+            charges.forEach(c => {
+                if (c.currPosKey === 'P11') c.nextPosKey = 'P21';
+                if (c.currPosKey === 'P12') c.nextPosKey = 'P22';
+                if (c.currPosKey === 'P13') c.nextPosKey = 'P23';
+                if (c.currPosKey === 'P21') c.nextPosKey = 'P31';
+                if (c.currPosKey === 'P22') c.nextPosKey = 'P32';
+                if (c.currPosKey === 'P23') c.nextPosKey = 'P33';
+                if (c.currPosKey === 'P31') c.nextPosKey = 'H1';
+                if (c.currPosKey === 'P32') c.nextPosKey = 'H2';
+                if (c.currPosKey === 'P33') c.nextPosKey = 'H3';
+            });
+            isVShift = true;
+        } else {
+            btnNext.disabled = true;
+            btnNext.textContent = "전송 완료";
+            stepTitle.textContent = "모든 전하 판독 완료";
+            stepDesc.textContent = "3x3 화소(9개)의 2차원 병렬 데이터가 단일 증폭기를 통해 완벽히 1차원 직렬 데이터로 변환되었습니다.";
+            hlStart = null; hlEnd = null;
+            microChargeEntering = null; microChargeP1 = null; microChargeP2 = null;
+            drawMacro(); drawMicro();
+            return false; 
+        }
+
+        stepCount++;
+        
+        // 동적으로 하이라이트 할 쌍 찾기 (임의의 기준 이동 픽셀 선정)
+        let activeMove = charges.find(c => c.currPosKey !== c.nextPosKey && c.nextPosKey !== 'READ');
+        if (activeMove) {
+            hlStart = activeMove.currPosKey;
+            hlEnd = activeMove.nextPosKey;
+        } else {
+            hlStart = 'AMP'; hlEnd = 'READ';
+        }
+
+        // 미시적 화면 동기화를 위한 전하 객체 찾기
+        microChargeP1 = charges.find(c => c.currPosKey === hlStart) || null;
+        microChargeP2 = charges.find(c => c.currPosKey === hlEnd) || null;
+        microChargeEntering = charges.find(c => c.nextPosKey === hlStart && c.currPosKey !== hlStart) || null;
+
+        if (isVShift) {
+            stepTitle.textContent = `이동 단계: 수직 전송 (Vertical Shift)`;
+            stepDesc.innerHTML = "화소 배열의 모든 전하가 동시에 아래로 한 칸 내려옵니다.<br><b>미시적 원리 확인:</b> 아래쪽 2개 화소 단면에서 <b>E1, E2, E3 전극 전압이 순차적으로 변하며</b> 전자 뭉치를 서로 섞이지 않게 다음 화소로 밀어내는 과정을 관찰하세요.";
+        } else {
+            stepTitle.textContent = `이동 단계: 수평 전송 및 증폭기 판독`;
+            stepDesc.innerHTML = "수평 레지스터 내부의 전하가 우측으로 한 칸 이동합니다. 우측 끝 증폭기(AMP)에 도달한 전하는 전압 신호로 변환되어 판독을 마칩니다.";
+        }
+        return true;
+    }
+
+    function finishStep() {
+        charges.forEach(c => {
+            c.currPosKey = c.nextPosKey;
+            if (c.currPosKey === 'AMP') {
+                if (!outputValues.find(o => o.id === c.id)) {
+                    outputValues.push({id: c.id, val: c.val});
+                }
+            }
+        });
+
+        // 이동 완료 후 미시적 화면 정지 상태 동기화
+        microChargeEntering = null;
+        microChargeP1 = charges.find(c => c.currPosKey === hlStart) || null;
+        microChargeP2 = charges.find(c => c.currPosKey === hlEnd) || null;
+
+        updateUI();
+        drawMacro();
+        drawMicro();
+        btnNext.disabled = false;
+    }
+
+    function animate(timestamp) {
+        if (!animStartTime) animStartTime = timestamp;
+        animProgress = (timestamp - animStartTime) / ANIM_DURATION;
+
+        if (animProgress >= 1.0) {
+            animProgress = 1.0;
+            isAnimating = false;
+            drawMacro();
+            drawMicro();
+            finishStep();
+        } else {
+            drawMacro();
+            drawMicro();
+            requestAnimationFrame(animate);
+        }
+    }
+
+    function stepNext() {
+        btnNext.disabled = true;
+        const willMove = setNextTargets();
+        if (willMove) {
+            isAnimating = true;
+            animStartTime = 0;
+            requestAnimationFrame(animate);
+        }
+    }
+
+    btnInit.addEventListener('click', resetSim);
+    btnExpose.addEventListener('click', expose);
+    btnNext.addEventListener('click', stepNext);
+
+    drawMacro();
+    drawMicro();
+
+</script>
+
+</body>
+</html>
