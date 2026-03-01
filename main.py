@@ -29,6 +29,7 @@ page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
 page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈에 의한 상", icon="▪️")
 page_brewster = st.Page("pages/브루스터법칙.py", title="브루스터 법칙", icon="▪️")
 page_snell = st.Page("pages/optics_snell.py", title="굴절 법칙", icon="▪️")
+page_diffractionspikes = st.Page("pages/optics_diffractionspikes.py", title="우주망원경의 회절 스파이크", icon="▪️")
 
 # SF
 page_sf = st.Page("pages/SF소설추천.py", title="SF 소설 추천", icon="▪️")
@@ -62,6 +63,7 @@ with st.sidebar:
         st.page_link(page_snell)
         st.page_link(page_lens)        
         st.page_link(page_brewster)        
+        st.page_link(page_diffractionspikes)        
         
     with st.expander("SF", expanded=False):
         st.page_link(page_sf)
