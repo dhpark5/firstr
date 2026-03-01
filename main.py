@@ -23,7 +23,7 @@ page_moment = st.Page("pages/mechanics/mech_moment.py", title="운동량 보존 
 # 전자기학
 page_Thevenin1 = st.Page("pages/테브난정리기본.py", title="테브난 정리 기본", icon="▪️")
 page_Thevenin2 = st.Page("pages/테브난정리심화.py", title="테브난 정리 심화", icon="▪️")
-page_RLC = st.Page("pages/교류회로.py", title="교류회로", icon="▪️")
+page_RLC = st.Page("pages/em/교류회로.py", title="교류회로", icon="▪️")
 
 # 광학
 page_lens = st.Page("pages/볼록렌즈.py", title="볼록렌즈에 의한 상", icon="▪️")
