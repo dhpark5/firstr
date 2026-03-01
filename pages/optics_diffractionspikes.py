@@ -6,7 +6,7 @@ import base64
 st.set_page_config(page_title="회절 스파이크 현상", layout="wide")
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-html_file_path = os.path.join(current_dir, "diffraction_spikes.html")
+html_file_path = os.path.join(current_dir, "optics_diffractionspikes.html")
 
 # 이미지 파일을 읽어서 Base64 문자열로 변환하는 함수
 def get_base64_of_bin_file(bin_file):
